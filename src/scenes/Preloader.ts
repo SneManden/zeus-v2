@@ -2,6 +2,14 @@ import { Scene } from 'phaser';
 
 export class Preloader extends Scene
 {
+    static assets = {
+        player: "Player",
+        zeus: "Zeus",
+        bull: "Bull",
+        background: "Background",
+        crosshair: "Crosshair",
+    } as const;
+
     constructor ()
     {
         super('Preloader');
@@ -36,10 +44,10 @@ export class Preloader extends Scene
         //  Load the assets for the game - Replace with your own assets
         this.load.setPath('assets');
         
-		this.load.spritesheet("player", "player.png", { frameWidth: 32, frameHeight: 48 });
-		this.load.spritesheet("zeus", "zeus.png", { frameWidth: 64, frameHeight: 64 });
-		this.load.spritesheet("bull", "bull.png", { frameWidth: 48, frameHeight: 32 });
-		this.load.spritesheet("crosshair", "crosshair.png", { frameWidth: 64, frameHeight: 64 });
+		this.load.spritesheet(Preloader.assets.player, "player.png", { frameWidth: 32, frameHeight: 48 });
+		this.load.spritesheet(Preloader.assets.zeus, "zeus.png", { frameWidth: 64, frameHeight: 64 });
+		this.load.spritesheet(Preloader.assets.bull, "bull.png", { frameWidth: 48, frameHeight: 32 });
+		this.load.spritesheet(Preloader.assets.crosshair, "crosshair.png", { frameWidth: 64, frameHeight: 64 });
 		this.load.image("human", "human.png");
 		
         // this.load.spritesheet("hp", "hp.png", { frameWidth: 0, frameHeight: 0 });//, 256, 8);

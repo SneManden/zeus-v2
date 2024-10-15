@@ -1,4 +1,5 @@
 import { Scene, GameObjects } from 'phaser';
+import { Preloader } from './Preloader';
 
 export class MainMenu extends Scene
 {
@@ -7,10 +8,10 @@ export class MainMenu extends Scene
     title: GameObjects.Text;
 
     private content = [
-        { y: 90,  image: 'player',      text: 'This is you. Use <Arrow keys> and <Space> for movement and throwing.' },
-        { y: 150, image: 'zeus',        text: 'This is Zeus. He will try to kill you.\nKill him.' },
-        { y: 210, image: 'crosshair',   text: 'This indicates Zeus\' lightning strike.\nAvoid it.' },
-        { y: 270, image: 'bull',        text: 'This is a bull. It will try to kill you.\nCan be jumped on and thrown.' },
+        { y: 90,  image: Preloader.assets.player,      text: 'This is you. Use <Arrow keys> and <Space> for movement and throwing.' },
+        { y: 150, image: Preloader.assets.zeus,        text: 'This is Zeus. He will try to kill you.\nKill him.' },
+        { y: 210, image: Preloader.assets.crosshair,   text: 'This indicates Zeus\' lightning strike.\nAvoid it.' },
+        { y: 270, image: Preloader.assets.bull,        text: 'This is a bull. It will try to kill you.\nCan be jumped on and thrown.' },
     ] as const;
 
     constructor ()
@@ -22,7 +23,7 @@ export class MainMenu extends Scene
     {
         const { w, h } = { w:Number(this.game.config.width), h:Number(this.game.config.height) };
 
-        this.background = this.add.image(w/2, h/2, 'background');
+        this.background = this.add.image(w/2, h/2, Preloader.assets.background);
         this.background.displayWidth = w;
         this.background.displayHeight = h;
 
@@ -48,7 +49,7 @@ export class MainMenu extends Scene
             this.add.text(textMarginLeft, y, text, remainingTextConfig).setOrigin(0, 0.5);
             const sprite = this.add.sprite(entitiesCenterX, y, image);
 
-            if (image === "crosshair") {
+            if (image === 'Crosshair') {
                 sprite.setScale(0.5);
             }
         }
