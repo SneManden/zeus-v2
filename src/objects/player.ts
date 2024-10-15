@@ -4,7 +4,6 @@ type PlayerConfig = {
     scene: Phaser.Scene,
     x: number;
     y: number;
-    frame: number;
 }
 
 enum Animations {
@@ -14,15 +13,18 @@ enum Animations {
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
 
+    declare body: Phaser.Physics.Arcade.Body;
     private cursors: Phaser.Types.Input.Keyboard.CursorKeys;
 
     parameters = {
         hSpeed: 250,
         jumpPower: 500,
     } as const;
+    
+    exploding = false;
 
-    constructor({ scene, x, y, frame }: PlayerConfig){
-        super(scene, x, y, Preloader.assets.player, frame);
+    constructor({ scene, x, y }: PlayerConfig){
+        super(scene, x, y, Preloader.assets.player, 0);
 
         this.scene.add.existing(this);
         this.scene.physics.add.existing(this);
@@ -46,51 +48,41 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.anims.play(Animations.left);
 
         this.cursors = this.scene.input.keyboard!.createCursorKeys();
+
+        // // Parameters
+        // let params = this.params = {
+        // 	gravityY: 1000,
+        // 	vMaxY: 500,
+        // 	hSpeed: 250
+        // };
+    
+        // this.anchor.x = 0.5;
+        // this.anchor.y = 0.5;
+    
+        // this.health = [];
+        // for (var i=0; i<3; i++) {
+        // 	let p = game.add.sprite(10 + i*20,10,'player');
+        // 	p.width *= 0.5;
+        // 	p.height *= 0.5;
+        // 	this.health.push(p);
+        // }
+    
+        // // Body
+        // this.body.collideWorldBounds = true;
+        // this.body.gravity.y = params.gravityY;
+        // this.body.maxVelocity.y = params.vMaxY;
+        // this.body.setSize(20, 32, 5, 16);
+        // //
+        // this.throwBtn= game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
     }
 
-	// constructor(game, x, y, key, frame) {
-	// 	super(game, x, y, key, frame);
-		// game.world.add(this);
-		
-		// // Parameters
-		// let params = this.params = {
-		// 	gravityY: 1000,
-		// 	vMaxY: 500,
-		// 	hSpeed: 250
-		// };
-
-		// this.anchor.x = 0.5;
-		// this.anchor.y = 0.5;
-
-		// this.health = [];
-		// for (var i=0; i<3; i++) {
-		// 	let p = game.add.sprite(10 + i*20,10,'player');
-		// 	p.width *= 0.5;
-		// 	p.height *= 0.5;
-		// 	this.health.push(p);
-		// }
-
-		// game.physics.enable(this, Phaser.Physics.ARCADE);
-		// // Body
-		// this.body.collideWorldBounds = true;
-		// this.body.gravity.y = params.gravityY;
-		// this.body.maxVelocity.y = params.vMaxY;
-		// this.body.setSize(20, 32, 5, 16);
-		// // Animations
-		// this.animations.add('right', [0, 1, 2, 3], 10, true);
-		// //this.animations.add('turn', [0], 20, true);
-		// this.animations.add('left', [4, 5, 6, 7], 10, true);
-		// this.facing = 'right';
-		// //
-		// // Cursors
-		// this.cursors = game.input.keyboard.createCursorKeys();
-		// this.throwBtn= game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
-		// this.jumpTimer = 0;
-
-	// }
 
 	preUpdate(time: number, delta: number) {
         super.preUpdate(time, delta);
+
+        if (this.exploding) {
+            return;
+        }
 
         const { left, right, up } = this.cursors;
         
@@ -114,24 +106,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         // Jumping
-        if (up.isDown && this.body?.touching.down) {
+        if (up.isDown && this.body.touching.down) {
             this.setVelocityY(-this.parameters.jumpPower);
         }
 
 	// 	if (this.x < -128 || this.y > this.game.height+128)
 	// 		this.respawn();
 
-	// 	if (this.dying) {
-	// 		this.frame = 8;
-	// 		return;
-	// 	}
-
 	// 	this.game.physics.arcade.overlap(this, this.game.state.getCurrentState().bulls, this.bullHit, null, this);
-		
-	// 	if (this.cursors.up.isDown && this.body.onFloor() && this.game.time.now > this.jumpTimer) {
-	// 		this.body.velocity.y = -500;
-	// 		this.jumpTimer = this.game.time.now + 750;
-	// 	}
 	}
 
 	// bullHit(player, bull) {
@@ -151,21 +133,23 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 	// 	}
 	// }
 
-	// explode(xmin=-500, xmax=500, ymin=-600, ymax=-1200) {
-	// 	console.log("player exploded!");
-	// 	this.dying = true;
-	// 	this.body.collideWorldBounds = false;
+	explode({ xmin, xmax, ymin, ymax }: { xmin: number, xmax: number, ymin: number, ymax: number } = { xmin:-500, xmax:500, ymin:-600, ymax:-1200 }) {
+        this.exploding = true;
+		// this.dying = true;
+		// this.body.collideWorldBounds = false;
 
-	// 	this.body.velocity.x = this.game.rnd.integerInRange(xmin, xmax);
-	// 	this.body.velocity.y = this.game.rnd.integerInRange(ymin, ymax);
-	// 	// this.body.acceleration.y = 180;
-	// 	// this.body.angle = 180;
-	// 	//
-	// 	if (this.health.length <= 0)
-	// 		return;
-	// 	var p = this.health.pop();
-	// 	p.destroy();
-	// }
+        this.setCollideWorldBounds(false);
+
+        this.setFrame(8);
+
+        const { vx, vy } = { vx: Phaser.Math.RND.between(xmin, xmax), vy: Phaser.Math.RND.between(ymin, ymax) };
+        this.setVelocity(vx, vy);
+
+		// if (this.health.length <= 0)
+		// 	return;
+		// var p = this.health.pop();
+		// p.destroy();
+	}
 
 	// respawn() {
 	// 	if (this.health.length == 0) {

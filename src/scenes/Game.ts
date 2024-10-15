@@ -1,12 +1,14 @@
 import { Scene } from 'phaser';
 import { Player } from '../objects/player';
 import { Preloader } from './Preloader';
+import { Zeus } from '../objects/zeus';
 
 export class Game extends Scene {
     camera: Phaser.Cameras.Scene2D.Camera;
     background: Phaser.GameObjects.Image;
 
     private player: Player;
+    private zeus: Zeus;
 
     constructor () {
         super('Game');
@@ -26,7 +28,9 @@ export class Game extends Scene {
         const ground = this.add.rectangle(w/2, h - 20, w, 20, undefined, 0);
         statics.add(ground);
 
-        this.player = new Player({ scene: this, x: w/2, y: 160, frame: 0 });
+        this.player = new Player({ scene: this, x: w/2, y: 160 });
+        
+        this.zeus = new Zeus({ scene: this, x: w/2, y: 32, target: this.player });
 
         this.physics.add.collider(this.player, statics);
     }
