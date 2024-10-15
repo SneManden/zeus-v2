@@ -215,18 +215,15 @@ export class Zeus extends Phaser.Physics.Arcade.Sprite {
 	// }
 
 	follow(target: Phaser.Physics.Arcade.Sprite) {
-		let hDist = target.x - this.x;
-		let prec = 10;
+		let horizontalDistance = target.x - this.x;
+		let precision = 10;
 
-		if (hDist < -prec /*&& this.x > this.scene.renderer.width/4*/) {
+		if (horizontalDistance < -precision) {
             this.setVelocityX(-this.parameters.hSpeed);
-			// this.body.velocity.x = -this.parameters.hSpeed;
-		} else if (hDist > prec /*&& this.x < 3*this.scene.renderer.width/4*/) {
+		} else if (horizontalDistance > precision) {
             this.setVelocityX(this.parameters.hSpeed);
-			// this.body.velocity.x = this.parameters.hSpeed;
 		} else {
             this.setVelocityX(0);
-			// this.body.velocity.x = 0;
 		}
 	}
 
