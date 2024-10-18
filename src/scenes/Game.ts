@@ -2,6 +2,7 @@ import { Scene } from 'phaser';
 import { Player } from '../objects/player';
 import { Preloader } from './Preloader';
 import { Zeus } from '../objects/zeus';
+import { BullsManager } from '../objects/bulls';
 
 export class Game extends Scene {
     camera: Phaser.Cameras.Scene2D.Camera;
@@ -29,9 +30,17 @@ export class Game extends Scene {
         statics.add(ground);
 
         this.player = new Player({ scene: this, x: w/2, y: 160 });
-        
         this.zeus = new Zeus({ scene: this, x: w/2, y: 32, target: this.player });
 
+        console.log(this.player);
+
+        // Bulls
+        const bullsManager = new BullsManager(this);
+
+        bullsManager.spawnBull({ target: this.player });
+
+        // Setup collisions
         this.physics.add.collider(this.player, statics);
+        this.physics.add.collider(bullsManager.bulls, statics);
     }
 }
