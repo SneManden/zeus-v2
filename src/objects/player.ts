@@ -1,5 +1,6 @@
 import { Preloader } from "../scenes/Preloader";
 import { Explodable } from "../mixins/Explodable";
+import { SceneHelper } from "../helpers/SceneHelper";
 
 type PlayerConfig = {
     scene: Phaser.Scene,
@@ -20,7 +21,12 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
     parameters = {
         hSpeed: 250,
         jumpPower: 500,
+        maxLives: 3,
     } as const;
+
+    lives: number = this.parameters.maxLives;
+
+    lifeIcons: Phaser.GameObjects.Group;
 
     constructor({ scene, x, y }: PlayerConfig){
         super(scene, x, y, Preloader.assets.player, 0);
@@ -48,16 +54,21 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
 
         this.cursors = this.scene.input.keyboard!.createCursorKeys();
 
-        // // Parameters
-        // let params = this.params = {
-        // 	gravityY: 1000,
-        // 	vMaxY: 500,
-        // 	hSpeed: 250
-        // };
-    
-        // this.anchor.x = 0.5;
-        // this.anchor.y = 0.5;
-    
+        this.lifeIcons = this.scene.add.group({
+            key: Preloader.assets.player,
+            frameQuantity: this.lives,
+            frame: 0,
+            setXY: {
+                x: 10,
+                y: 10,
+                stepX: 20,
+            },
+            setScale: {
+                x: 0.5,
+                y: 0.5,
+            },
+        });
+
         // this.health = [];
         // for (var i=0; i<3; i++) {
         // 	let p = game.add.sprite(10 + i*20,10,'player');
@@ -78,6 +89,10 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
 
 	preUpdate(time: number, delta: number) {
         super.preUpdate(time, delta);
+
+        if (!this.scene.physics.world.bounds.contains(this.x, this.y)) {
+            this.tryRespawn();
+        }
 
         if (this.exploding) {
             return;
@@ -108,11 +123,6 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
         if (up.isDown && this.body.touching.down) {
             this.setVelocityY(-this.parameters.jumpPower);
         }
-
-	// 	if (this.x < -128 || this.y > this.game.height+128)
-	// 		this.respawn();
-
-	// 	this.game.physics.arcade.overlap(this, this.game.state.getCurrentState().bulls, this.bullHit, null, this);
 	}
 
 	// bullHit(player, bull) {
@@ -132,32 +142,34 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
 	// 	}
 	// }
 
-	
+    tryRespawn(): void {
+        if (this.lives === 0) {
+            this.die();
+            return;
+        }
 
-	// respawn() {
-	// 	if (this.health.length == 0) {
-	// 		console.log("player has died for good.");
-	// 		this.alive = false;
-	// 		let g = this.game;
-	// 		g.time.events.add(2000, function() { g.state.start('GameOver'); }, this);
-	// 		this.destroy();
-	// 		return;
-	// 	}
-	// 	console.log("player has respawned.");
-	// 	this.dying = false;
-	// 	this.body.angle = 0;
-	// 	this.body.collideWorldBounds = true;
-	// 	this.x = this.game.width / 2;
-	// 	this.y = this.game.height / 2;
-	// 	this.body.velocity.x = 0;
-	// 	this.body.velocity.y = 0;
-	// 	this.body.acceleration.y = 0;
-	// 	this.frame = 0;
-	// }
+        this.lives -= 1;
+        this.lifeIcons.killAndHide(this.lifeIcons.getLast(true));
+        
+        this.setVelocity(0, 0);
+        this.setAngularVelocity(0);
+        this.setAngle(0);
+        this.setCollideWorldBounds(true);
+        this.setFrame(0);
 
-	render() {
-		// this.game.debug.body(this);
-		// this.game.debug.bodyInfo(this, 16, 24);
-	}
+        this.exploding = false;
 
+        const { width, height } = SceneHelper.GetScreenSize(this.scene);
+        this.setPosition(width / 2, height / 2);
+    }
+
+    die(): void {
+        const scenes = this.scene.scene;
+        
+        this.scene.time.addEvent({
+            delay: 1_000,
+            callback: () => scenes.start("GameOver"),
+        })
+        this.destroy();
+    }
 }

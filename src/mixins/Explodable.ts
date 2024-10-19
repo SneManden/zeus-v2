@@ -1,13 +1,20 @@
-type ExplodeOptions = { xmin: number; xmax: number; ymin: number; ymax: number; frame?: number; };
-type GConstructor<T = {}> = new (...args: any[]) => T;
+import { GConstructor } from "./GConstructor";
+
+type MinMax = { min: number; max: number };
+
+type ExplodeOptionsX = { x: number | MinMax };
+type ExplodeOptionsY = { y: number | MinMax };
+type ExplodeOptions = Partial<ExplodeOptionsX & ExplodeOptionsY> & { frame?: number, rotate?: boolean };
+
 export function Explodable<TBase extends GConstructor<Phaser.Physics.Arcade.Sprite>>(Base: TBase) {
     return class extends Base {
         exploding = false;
 
-        defaultConfig: ExplodeOptions = { xmin: -500, xmax: 500, ymin: -600, ymax: -1200 };
+        // satisfies ExplodeOptions; // :( esbuild fails to understand...
+        defaultConfig: ExplodeOptions & ExplodeOptionsX & ExplodeOptionsY = { x: { min: -500, max: 500 }, y: { min: -600, max: -1200 } };
 
         explode(config?: ExplodeOptions) {
-            const { xmin, xmax, ymin, ymax, frame } = { ...this.defaultConfig, ...config };
+            const { x, y, frame, rotate } = { ...this.defaultConfig, ...config };
 
             this.exploding = true;
 
@@ -17,7 +24,13 @@ export function Explodable<TBase extends GConstructor<Phaser.Physics.Arcade.Spri
                 this.setFrame(frame);
             }
 
-            const { vx, vy } = { vx: Phaser.Math.RND.between(xmin, xmax), vy: Phaser.Math.RND.between(ymin, ymax) };
+            if (rotate === true) {
+                this.setAngularVelocity(150);
+            }
+
+            const vx = typeof x === "number" ? x : Phaser.Math.RND.between(x.min, x.max);
+            const vy = typeof y === "number" ? y : Phaser.Math.RND.between(y.min, y.max);
+
             this.setVelocity(vx, vy);
         }
     };

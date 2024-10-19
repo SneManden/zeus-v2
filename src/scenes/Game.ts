@@ -53,12 +53,14 @@ export class Game extends Scene {
                 const bull = oBull as Bull;
                 const player = _oPlayer as Player;
 
+                const explodeVx = 2 * bull.body.velocity.x;
+                
                 if (bull.body.touching.left || bull.body.touching.right) {
-                    player.explode();
+                    player.explode({ x: explodeVx, y: -player.parameters.jumpPower, frame: 8, rotate: true })
                 } else {
                     bull.paralyze(); // Fix wrong type, is really Bull
                 }
             },
-            (_oPlayer, oBull) => !(oBull as Bull).paralyzed);
+            (_oPlayer, oBull) => !(oBull as Bull).paralyzed && !(_oPlayer as Player).exploding);
     }
 }

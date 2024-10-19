@@ -54,7 +54,6 @@ export class MainMenu extends Scene
             }
         }
 
-        // Add listener for SPACE: start game
         this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).on("up", () => {
             this.scene.start('Game');
         });
