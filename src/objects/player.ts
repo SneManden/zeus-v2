@@ -1,4 +1,5 @@
 import { Preloader } from "../scenes/Preloader";
+import { Explodable } from "../mixins/Explodable";
 
 type PlayerConfig = {
     scene: Phaser.Scene,
@@ -11,7 +12,7 @@ enum Animations {
     right = "right",
 };
 
-export class Player extends Phaser.Physics.Arcade.Sprite {
+export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
 
     declare body: Phaser.Physics.Arcade.Body;
     private cursors: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -20,8 +21,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         hSpeed: 250,
         jumpPower: 500,
     } as const;
-    
-    exploding = false;
 
     constructor({ scene, x, y }: PlayerConfig){
         super(scene, x, y, Preloader.assets.player, 0);
@@ -133,23 +132,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 	// 	}
 	// }
 
-	explode({ xmin, xmax, ymin, ymax }: { xmin: number, xmax: number, ymin: number, ymax: number } = { xmin:-500, xmax:500, ymin:-600, ymax:-1200 }) {
-        this.exploding = true;
-		// this.dying = true;
-		// this.body.collideWorldBounds = false;
-
-        this.setCollideWorldBounds(false);
-
-        this.setFrame(8);
-
-        const { vx, vy } = { vx: Phaser.Math.RND.between(xmin, xmax), vy: Phaser.Math.RND.between(ymin, ymax) };
-        this.setVelocity(vx, vy);
-
-		// if (this.health.length <= 0)
-		// 	return;
-		// var p = this.health.pop();
-		// p.destroy();
-	}
+	
 
 	// respawn() {
 	// 	if (this.health.length == 0) {

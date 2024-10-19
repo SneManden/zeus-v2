@@ -2,7 +2,7 @@ import { Scene } from 'phaser';
 import { Player } from '../objects/player';
 import { Preloader } from './Preloader';
 import { Zeus } from '../objects/zeus';
-import { Bulls } from '../objects/bulls';
+import { Bull, Bulls } from '../objects/bulls';
 
 export class Game extends Scene {
     camera: Phaser.Cameras.Scene2D.Camera;
@@ -34,11 +34,6 @@ export class Game extends Scene {
 
         // Bulls
         const bulls = new Bulls(this);
-
-        // Setup collisions
-        this.physics.add.collider(this.player, statics);
-        this.physics.add.collider(bulls, statics);
-
         this.time.addEvent({
             delay: 1500,
             callback: () => {
@@ -46,5 +41,24 @@ export class Game extends Scene {
             },
             loop: true,
         });
+
+        // Setup collisions
+        this.physics.add.collider(this.player, statics);
+        this.physics.add.collider(bulls, statics);
+
+        this.physics.add.collider(
+            this.player,
+            bulls,
+            (_oPlayer, oBull) => {
+                const bull = oBull as Bull;
+                const player = _oPlayer as Player;
+
+                if (bull.body.touching.left || bull.body.touching.right) {
+                    player.explode();
+                } else {
+                    bull.paralyze(); // Fix wrong type, is really Bull
+                }
+            },
+            (_oPlayer, oBull) => !(oBull as Bull).paralyzed);
     }
 }

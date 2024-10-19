@@ -2,6 +2,13 @@ import { Scene } from "phaser";
 import { Preloader } from "../scenes/Preloader";
 
 export class Bull extends Phaser.Physics.Arcade.Sprite {
+    declare body: Phaser.Physics.Arcade.Body;
+
+    paralyzed = false;
+
+    parameters = {
+        hSpeed: { min: 100, max: 300 },
+    } as const;
 
     constructor(scene: Scene, x: number, y: number) {
         super(scene, x, y, Preloader.assets.bull);
@@ -22,13 +29,19 @@ export class Bull extends Phaser.Physics.Arcade.Sprite {
         });
     }
 
+    paralyze(): void {
+        this.paralyzed = true;
+        this.setVelocityX(0);
+        this.anims.stop();
+        this.setFrame(2);
+    }
+
     protected preUpdate(time: number, delta: number): void {
         super.preUpdate(time, delta);
 
         const { width } = this.scene.renderer;
 
         if (this.x < -150 || this.x > width + 150) {
-            console.log(this.name, "outside bounds.");
             this.setActive(false);
             this.setVisible(false);
         }
@@ -36,10 +49,6 @@ export class Bull extends Phaser.Physics.Arcade.Sprite {
 }
 
 export class Bulls extends Phaser.Physics.Arcade.Group {
-    bullParameters = {
-        hSpeed: { min: 100, max: 300 },
-    } as const;
-
     constructor(scene: Scene) {
         super(scene.physics.world, scene);
 
@@ -57,7 +66,7 @@ export class Bulls extends Phaser.Physics.Arcade.Group {
         
         const spawnX = Phaser.Math.RND.pick([-50, width + 50]);
         const spawnY = height - 70;
-        const bull = this.getFirstDead(false, spawnX, spawnY) as Phaser.Physics.Arcade.Sprite | null;
+        const bull = this.getFirstDead(false, spawnX, spawnY) as Bull | null; // fix any type
         if (!bull) {
             console.warn("No bull available to spawn");
             return;
@@ -67,13 +76,11 @@ export class Bulls extends Phaser.Physics.Arcade.Group {
         bull.active = true;
         bull.visible = true;
 
-        const { min: vMin, max: vMax } = this.bullParameters.hSpeed;
+        const { min: vMin, max: vMax } = bull.parameters.hSpeed;
         const vx = Phaser.Math.RND.between(vMin, vMax);
         const direction = Math.sign(width/2 - bull.x); // Run towards center of screen
 
         bull.setVelocity(direction * vx, 0);
-        
-        console.log("Spawned bull", bull.name, "at", { x:bull.x, y:bull.y }, "with vx", vx);
 
         if (direction < 0) {
             bull.anims.play("left");
@@ -81,34 +88,5 @@ export class Bulls extends Phaser.Physics.Arcade.Group {
             bull.anims.play("right");
         }
         bull.anims.currentAnim!.msPerFrame = vx / 25;
-
-		// this.game.time.events.add(this.game.rnd.integerInRange(1000,3000), this.addBull, this);
 	}
-
-    private createBull(name: string, x: number, y: number, ): Phaser.Physics.Arcade.Sprite {
-        const bull = new Phaser.Physics.Arcade.Sprite(this.scene, x, y, Preloader.assets.bull);
-
-        bull.name = name;
-
-        // bull.body.setSize(32, 24, 8, 6);
-        // bull.body.collideWorldBounds = true;
-        // bull.body.gravity.y = 1000;
-        // bull.body.maxVelocity.y = 1600;
-        // bull.dying = false;
-        // bull.explode = function(xmin=-500,xmax=500,ymin=-1200,ymax=-600) {
-        // 	this.body.collideWorldBounds = false;
-        // 	this.body.velocity.x = this.game.rnd.integerInRange(xmin,xmax);
-        // 	this.body.velocity.y = this.game.rnd.integerInRange(ymin,ymax);
-        // 	this.dying = true;
-        // }
-        // bull.die = function() {
-        // 	this.dying = true;
-        // 	this.body.velocity.x = 0;
-        // 	this.animations.stop('right');
-        // 	this.animations.stop('left');
-        // 	this.frame = 2;
-        // }
-        
-        return bull;
-    }
 }
