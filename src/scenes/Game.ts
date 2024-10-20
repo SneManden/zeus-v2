@@ -32,6 +32,8 @@ export class Game extends Scene {
         this.player = new Player({ scene: this, x: w/2, y: 160 });
         this.zeus = new Zeus({ scene: this, x: w/2, y: 32, target: this.player });
 
+        this.player.target = this.zeus;
+
         // Bulls
         const bulls = new Bulls(this);
         this.time.addEvent({
@@ -56,7 +58,8 @@ export class Game extends Scene {
                 const explodeVx = 2 * bull.body.velocity.x;
                 
                 if (bull.body.touching.left || bull.body.touching.right) {
-                    player.explode({ x: explodeVx, y: -player.parameters.jumpPower, frame: 8, rotate: true })
+                    player.explode({ x: explodeVx, y: -player.parameters.jumpPower, frame: 8, rotate: true });
+                    bull.setVelocityX(-Math.sign(explodeVx)*bull.parameters.hSpeed.max);
                 } else {
                     bull.paralyze(); // Fix wrong type, is really Bull
                 }

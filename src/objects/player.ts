@@ -25,8 +25,8 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
         maxLives: 3,
     } as const;
 
+    dead = false;
     lives: number = this.parameters.maxLives;
-
     lifeIcons: Phaser.GameObjects.Group;
 
     target: { x: number, y: number } | null;
@@ -98,11 +98,17 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
 	preUpdate(time: number, delta: number) {
         super.preUpdate(time, delta);
 
+        if (this.dead) {
+            return;
+        }
+
         if (!this.scene.physics.world.bounds.contains(this.x, this.y)) {
             this.tryRespawn();
         }
 
         if (this.exploding) {
+            this.anims.stop();
+            this.setFrame(8);
             return;
         }
 
@@ -155,12 +161,13 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
     }
 
     die(): void {
+        this.dead = true;
+
         const scenes = this.scene.scene;
         
         this.scene.time.addEvent({
-            delay: 1_000,
+            delay: 2_000,
             callback: () => scenes.start("GameOver"),
-        })
-        this.destroy();
+        });
     }
 }

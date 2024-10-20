@@ -1,6 +1,7 @@
 import { Scene } from "phaser";
 import { Preloader } from "../scenes/Preloader";
 import { Explodable } from "../mixins/Explodable";
+import { SceneHelper } from "../helpers/SceneHelper";
 
 export class Bull extends Explodable(Phaser.Physics.Arcade.Sprite) {
     declare body: Phaser.Physics.Arcade.Body;
@@ -40,13 +41,27 @@ export class Bull extends Explodable(Phaser.Physics.Arcade.Sprite) {
     protected preUpdate(time: number, delta: number): void {
         super.preUpdate(time, delta);
 
-        const { width } = this.scene.renderer;
-
-        if (this.x < -150 || this.x > width + 150) {
+        const { width, height } = SceneHelper.GetScreenSize(this.scene);
+        if (this.x < -150 || this.x > width + 150 || this.y > height + 150) {
             this.setActive(false);
             this.setVisible(false);
+            return;
         }
-    }
+
+        if (this.exploding || this.paralyzed) {
+            return;
+        }
+
+        const vx = this.body.velocity.x;
+
+        const currentlyPlaying = this.anims.isPlaying ? this.anims.currentAnim?.key : null;
+        if (vx < 0 && currentlyPlaying !== "left") {
+            this.anims.play("left");
+        } else if (vx > 0 && currentlyPlaying !== "right") {
+            this.anims.play("right");
+        }
+        this.anims.currentAnim!.msPerFrame = vx / 25;
+	}
 }
 
 export class Bulls extends Phaser.Physics.Arcade.Group {
@@ -63,7 +78,7 @@ export class Bulls extends Phaser.Physics.Arcade.Group {
     }
 
 	spawnBull() {
-        const { width, height } = this.scene.renderer;
+        const { width, height } = SceneHelper.GetScreenSize(this.scene);
         
         const spawnX = Phaser.Math.RND.pick([-50, width + 50]);
         const spawnY = height - 70;
@@ -85,12 +100,5 @@ export class Bulls extends Phaser.Physics.Arcade.Group {
         const direction = Math.sign(width/2 - bull.x); // Run towards center of screen
 
         bull.setVelocity(direction * vx, 0);
-
-        if (direction < 0) {
-            bull.anims.play("left");
-        } else {
-            bull.anims.play("right");
-        }
-        bull.anims.currentAnim!.msPerFrame = vx / 25;
-	}
+    }
 }
