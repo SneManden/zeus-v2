@@ -164,10 +164,6 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
         this.dead = true;
 
         const scenes = this.scene.scene;
-        
-        this.scene.time.addEvent({
-            delay: 2_000,
-            callback: () => scenes.start("GameOver"),
-        });
+        this.scene.time.delayedCall(2_000, () => scenes.start("GameOver"));
     }
 }

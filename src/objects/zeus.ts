@@ -1,3 +1,5 @@
+import { SceneHelper } from "../helpers/SceneHelper";
+import { Explodable } from "../mixins/Explodable";
 import { Preloader } from "../scenes/Preloader";
 
 type ZeusConfig = {
@@ -7,7 +9,7 @@ type ZeusConfig = {
     target?: Phaser.Physics.Arcade.Sprite;
 }
 
-export class Zeus extends Phaser.Physics.Arcade.Sprite {
+export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 
     declare body: Phaser.Physics.Arcade.Body;
 
@@ -22,9 +24,10 @@ export class Zeus extends Phaser.Physics.Arcade.Sprite {
 		maxHealth: 100,
     } as const;
 
+    dead = false;
     target: Phaser.Physics.Arcade.Sprite | null;
 	canTakeHit = true;
-	health = this.parameters.maxHealth;
+	health: number = this.parameters.maxHealth;
 
     shake = this.scene.tweens.create({
         targets: this,
@@ -34,6 +37,8 @@ export class Zeus extends Phaser.Physics.Arcade.Sprite {
         yoyo: true,
         repeat: -1,
     }) as Phaser.Tweens.Tween; // Fix type
+
+    healthBar: Phaser.GameObjects.Rectangle;
 
 	constructor({ scene, x, y, target }: ZeusConfig) {
         super(scene, x, y, Preloader.assets.zeus, 0);
@@ -45,6 +50,9 @@ export class Zeus extends Phaser.Physics.Arcade.Sprite {
 
         this.setCollideWorldBounds(true);
         this.body.setAllowGravity(false);
+
+        this.healthBar = this.createHealthbar();
+        this.updateHealthbar();
 
 		// this.hpback = game.add.sprite(game.world.width/2 - 128, 0, 'hpback');
 		// this.hp = game.add.sprite(game.world.width/2 - 128, 0, 'hp');
@@ -73,11 +81,10 @@ export class Zeus extends Phaser.Physics.Arcade.Sprite {
 
 	preUpdate(time: number, delta: number) {
         super.preUpdate(time, delta);
-	// 	if (this.dead) {
-	// 		this.angle += 5;
-	// 		this.body.velocity.x = 100;
-	// 		return;
-	// 	}
+
+        if (this.exploding) {
+            return;
+        }
 
         if (this.target) {
             this.follow(this.target);
@@ -91,8 +98,6 @@ export class Zeus extends Phaser.Physics.Arcade.Sprite {
 	// 	if (this.enableCrosshair)
 	// 		this.aim(this.player);
 
-	// 	this.game.physics.arcade.overlap(this, this.game.state.getCurrentState().bulls, this.bullHit, null, this);
-
 	// 	/*if (this.player && this.game.time.now > this.canFire) {
 	// 		this.enableCrosshair = true;
 	// 		this.fireTimer = this.game.time.now + (1+Math.random())*this.params.aimDelay;
@@ -104,14 +109,20 @@ export class Zeus extends Phaser.Physics.Arcade.Sprite {
 			return;
 		}
 
-		this.canTakeHit = false;
-		this.health -= damage;
 		this.setFrame(1);
+		this.canTakeHit = false;
 
+		this.health = Math.max(0, this.health - damage);
 		this.updateHealthbar();
 
-        this.shake.restart();
+        if (this.health <= 0) {
+            this.body.setAllowGravity(true);
+            this.explode({ x: { min: -50, max: 50 }, y: -100, rotate: true });
+            this.die();
+            return;
+        }
 
+        this.shake.restart();
 		this.scene.time.delayedCall(this.parameters.damageDebounce, () => {
             this.setAngle(0);
 			this.setFrame(0);
@@ -121,41 +132,30 @@ export class Zeus extends Phaser.Physics.Arcade.Sprite {
 		});
 	}
 
+    private createHealthbar(): Phaser.GameObjects.Rectangle {
+        const { width } = SceneHelper.GetScreenSize(this.scene);
+        
+        const barWidth = this.parameters.maxHealth;
+        const barHeight = 10;
+        
+        const x = width/2, y = 5;
+        
+        this.scene.add.rectangle(x, y, barWidth, barHeight, 0xffffff);
+        const bar = this.scene.add.rectangle(x - barWidth/2, y, 0, barHeight, 0x00ff00);
+
+        return bar;
+    }
+
 	private updateHealthbar(): void {
-		
+		this.healthBar.width = this.health;
 	}
 
-	// bullHit(zeus, bull) {
-	// 	if (this.canTakeHit) {
-	// 		this.canTakeHit = false;
-	// 		this.health -= 5;
-	// 		let w = (this.health / this.maxHealth) * this.hp.maxwidth;
-	// 		this.hp.crop(new Phaser.Rectangle(0,0,w,this.hp.height));
-	// 		// this.hp.crop.width = (this.health / this.maxHealth) * this.hp.width;
-	// 		console.log("zeus has hp:", this.health);
-	// 		this.game.time.events.add(500, function() { zeus.canTakeHit = true; zeus.frame = 0; });
-	// 		this.frame = 1;
+    die(): void {
+        this.dead = true;
 
-	// 		if (this.health <= 0) {
-	// 			this.die();
-	// 		}
-	// 	}
-	// }
-
-	// die() {
-	// 	this.dead = true;
-	// 	console.log("zeus has died.");
-	// 	this.hp.destroy();
-	// 	this.crosshair.destroy();
-	// 	let g = this.game;
-	// 	g.time.events.add(3000, function() { g.state.start('GameWon'); }, this);
-	// 	// this.kill();
-	// 	this.body.collideWorldBounds = false;
-	// 	this.body.velocity.x = this.game.rnd.integerInRange(-300,300);
-	// 	this.body.velocity.y = this.game.rnd.integerInRange(-400,-200);
-	// 	this.body.allowGravity = true;
-	// 	this.body.gravity.y = 300;
-	// }
+        const scenes = this.scene.scene;
+        this.scene.time.delayedCall(2_000, () => scenes.start("GameWon"));
+    }
 
 	// aim(object) {
 	// 	if (!object || !object.alive)

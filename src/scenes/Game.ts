@@ -80,7 +80,7 @@ export class Game extends Scene {
                 const bull = oBull as Bull;
 
                 zeusTakeDamage.active = false;
-                this.zeus.bullHit(bull.body.velocity.length(), () => zeusTakeDamage.active = true);
+                this.zeus.bullHit(Math.sqrt(bull.body.velocity.length()), () => zeusTakeDamage.active = true);
             },
         );
     }
