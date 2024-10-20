@@ -43,15 +43,15 @@ export class Game extends Scene {
         });
 
         // Setup collisions
-        this.physics.add.collider(this.player, statics);
-        this.physics.add.collider(bulls, statics);
+        this.physics.add.collider(this.player, statics, undefined, (oPlayer, _) => !(oPlayer as Player).exploding);
+        this.physics.add.collider(bulls, statics, undefined, (oBull, _) => !(oBull as Bull).exploding);
 
         this.physics.add.collider(
             this.player,
             bulls,
-            (_oPlayer, oBull) => {
+            (oPlayer, oBull) => {
                 const bull = oBull as Bull;
-                const player = _oPlayer as Player;
+                const player = oPlayer as Player;
 
                 const explodeVx = 2 * bull.body.velocity.x;
                 
@@ -61,6 +61,13 @@ export class Game extends Scene {
                     bull.paralyze(); // Fix wrong type, is really Bull
                 }
             },
-            (_oPlayer, oBull) => !(oBull as Bull).paralyzed && !(_oPlayer as Player).exploding);
+            (oPlayer, oBull) => !(oBull as Bull).paralyzed && !(oPlayer as Player).exploding);
+
+        this.physics.add.overlap(
+            this.player,
+            bulls,
+            (_, oBull) => this.player.canThrow(oBull as Bull),
+            (_, oBull) => (oBull as Bull).paralyzed,
+        );
     }
 }

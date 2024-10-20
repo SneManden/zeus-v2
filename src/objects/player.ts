@@ -1,6 +1,7 @@
 import { Preloader } from "../scenes/Preloader";
 import { Explodable } from "../mixins/Explodable";
 import { SceneHelper } from "../helpers/SceneHelper";
+import { Bull } from "./bulls";
 
 type PlayerConfig = {
     scene: Phaser.Scene,
@@ -28,6 +29,8 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
 
     lifeIcons: Phaser.GameObjects.Group;
 
+    target: { x: number, y: number } | null;
+
     constructor({ scene, x, y }: PlayerConfig){
         super(scene, x, y, Preloader.assets.player, 0);
 
@@ -36,7 +39,9 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
 
         this.setCollideWorldBounds(true);
 
+        // this.body.maxVelocity.y = params.vMaxY;
         // this.setBodySize(20, 32, true);
+        // this.body.setSize(20, 32, 5, 16);
         
         this.anims.create({
             key: Animations.right, 
@@ -68,24 +73,27 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
                 y: 0.5,
             },
         });
-
-        // this.health = [];
-        // for (var i=0; i<3; i++) {
-        // 	let p = game.add.sprite(10 + i*20,10,'player');
-        // 	p.width *= 0.5;
-        // 	p.height *= 0.5;
-        // 	this.health.push(p);
-        // }
-    
-        // // Body
-        // this.body.collideWorldBounds = true;
-        // this.body.gravity.y = params.gravityY;
-        // this.body.maxVelocity.y = params.vMaxY;
-        // this.body.setSize(20, 32, 5, 16);
-        // //
-        // this.throwBtn= game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
     }
 
+    get idleFrame(): number {
+        if (this.cursors.space.isDown) {
+            return 9;
+        }
+        return this.anims.currentAnim?.key === Animations.left ? 5 : 2;
+    }
+
+    canThrow(bull: Bull): void {
+        if (!this.cursors.space.isDown) {
+            return;
+        }
+
+        const throwPower = { min: -500, max: -900 };
+        const accurracy = 100; // if target dir is X, then aim will be in range [X-accurracy; X+accurracy]
+
+        const xDirection = this.target ? this.target.x - this.x : this.x;
+        bull.explode({ x: { min: xDirection - accurracy, max: xDirection + accurracy }, y: throwPower, rotate: true });
+        this.setFrame(9);
+    }
 
 	preUpdate(time: number, delta: number) {
         super.preUpdate(time, delta);
@@ -116,7 +124,7 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
         } else {
             this.setVelocityX(0);
             this.anims.stop();
-            this.setFrame(this.anims.currentAnim?.key === Animations.left ? 5 : 2);
+            this.setFrame(this.idleFrame);
         }
 
         // Jumping
@@ -124,23 +132,6 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
             this.setVelocityY(-this.parameters.jumpPower);
         }
 	}
-
-	// bullHit(player, bull) {
-	// 	if (!bull.dying) {
-	// 		if (bull.body.touching.up)
-	// 			bull.die();
-	// 		else if (bull.body.velocity.x > 0 && bull.body.touching.right)
-	// 			this.explode(0);
-	// 		else if (bull.body.velocity.x < 0 && bull.body.touching.left)
-	// 			this.explode(-500,0);
-	// 	} else {
-	// 		if (this.throwBtn.isDown) {
-	// 			let xdir = this.zeus.x - this.x;
-	// 			bull.explode(xdir-100,xdir+100,-900,-800);
-	// 			this.frame = 9;
-	// 		}
-	// 	}
-	// }
 
     tryRespawn(): void {
         if (this.lives === 0) {

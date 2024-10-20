@@ -1,7 +1,8 @@
 import { Scene } from "phaser";
 import { Preloader } from "../scenes/Preloader";
+import { Explodable } from "../mixins/Explodable";
 
-export class Bull extends Phaser.Physics.Arcade.Sprite {
+export class Bull extends Explodable(Phaser.Physics.Arcade.Sprite) {
     declare body: Phaser.Physics.Arcade.Body;
 
     paralyzed = false;
@@ -72,9 +73,12 @@ export class Bulls extends Phaser.Physics.Arcade.Group {
             return;
         }
 
-
         bull.active = true;
         bull.visible = true;
+        bull.exploding = false;
+        bull.paralyzed = false;
+        bull.setAngle(0);
+        bull.setAngularVelocity(0);
 
         const { min: vMin, max: vMax } = bull.parameters.hSpeed;
         const vx = Phaser.Math.RND.between(vMin, vMax);
