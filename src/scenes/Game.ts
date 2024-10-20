@@ -59,7 +59,7 @@ export class Game extends Scene {
                 
                 if (bull.body.touching.left || bull.body.touching.right) {
                     player.explode({ x: explodeVx, y: -player.parameters.jumpPower, frame: 8, rotate: true });
-                    bull.setVelocityX(-Math.sign(explodeVx)*bull.parameters.hSpeed.max);
+                    bull.setVelocityX(-Math.sign(explodeVx) * bull.parameters.hSpeed.max);
                 } else {
                     bull.paralyze(); // Fix wrong type, is really Bull
                 }
@@ -71,6 +71,17 @@ export class Game extends Scene {
             bulls,
             (_, oBull) => this.player.canThrow(oBull as Bull),
             (_, oBull) => (oBull as Bull).paralyzed,
+        );
+
+        const zeusTakeDamage = this.physics.add.overlap(
+            this.zeus,
+            bulls,
+            (_z, oBull) => {
+                const bull = oBull as Bull;
+
+                zeusTakeDamage.active = false;
+                this.zeus.bullHit(bull.body.velocity.length(), () => zeusTakeDamage.active = true);
+            },
         );
     }
 }

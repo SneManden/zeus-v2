@@ -17,10 +17,23 @@ export class Zeus extends Phaser.Physics.Arcade.Sprite {
         react: 1000,
         fireDelay: 2000,
         aimDelay: 200,
-        aimhSpeed: 25 
+        aimhSpeed: 25,
+		damageDebounce: 750,
+		maxHealth: 100,
     } as const;
 
     target: Phaser.Physics.Arcade.Sprite | null;
+	canTakeHit = true;
+	health = this.parameters.maxHealth;
+
+    shake = this.scene.tweens.create({
+        targets: this,
+        angle: { from: -5, to: 5 },
+        duration: 50,
+        ease: Phaser.Math.Easing.Bounce.InOut,
+        yoyo: true,
+        repeat: -1,
+    }) as Phaser.Tweens.Tween; // Fix type
 
 	constructor({ scene, x, y, target }: ZeusConfig) {
         super(scene, x, y, Preloader.assets.zeus, 0);
@@ -84,6 +97,32 @@ export class Zeus extends Phaser.Physics.Arcade.Sprite {
 	// 		this.enableCrosshair = true;
 	// 		this.fireTimer = this.game.time.now + (1+Math.random())*this.params.aimDelay;
 	// 	}*/
+	}
+
+	bullHit(damage: number, canTakeDamageAgain: () => void): void {
+		if (!this.canTakeHit) {
+			return;
+		}
+
+		this.canTakeHit = false;
+		this.health -= damage;
+		this.setFrame(1);
+
+		this.updateHealthbar();
+
+        this.shake.restart();
+
+		this.scene.time.delayedCall(this.parameters.damageDebounce, () => {
+            this.setAngle(0);
+			this.setFrame(0);
+            this.shake.pause();
+			this.canTakeHit = true;
+			canTakeDamageAgain();
+		});
+	}
+
+	private updateHealthbar(): void {
+		
 	}
 
 	// bullHit(zeus, bull) {
