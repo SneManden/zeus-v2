@@ -37,7 +37,7 @@ export class Game extends Scene {
         // Bulls
         const bulls = new Bulls(this);
         this.time.addEvent({
-            delay: 1500,
+            delay: 5000,
             callback: () => {
                 bulls.spawnBull();
             },
@@ -64,12 +64,15 @@ export class Game extends Scene {
                     bull.paralyze(); // Fix wrong type, is really Bull
                 }
             },
-            (oPlayer, oBull) => !(oBull as Bull).paralyzed && !(oPlayer as Player).exploding);
+            (oPlayer, oBull) => bullCanCollide(oBull as Bull) && !(oPlayer as Player).exploding);
+        
+        const bullCanCollide = (bull: Bull) => bull.active && !bull.paralyzed;
+            
 
         this.physics.add.overlap(
             this.player,
             bulls,
-            (_, oBull) => this.player.canThrow(oBull as Bull),
+            (_, oBull) => this.player.tryThrow(oBull as Bull),
             (_, oBull) => (oBull as Bull).paralyzed,
         );
 

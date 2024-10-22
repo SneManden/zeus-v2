@@ -1,0 +1,1 @@
+export const v2s = (v: { x: number, y: number }): string => `(${Math.round(v.x)}, ${Math.round(v.y)})`;

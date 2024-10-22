@@ -2,6 +2,7 @@ import { Preloader } from "../scenes/Preloader";
 import { Explodable } from "../mixins/Explodable";
 import { SceneHelper } from "../helpers/SceneHelper";
 import { Bull } from "./bulls";
+import { v2s } from "../helpers/utils";
 
 type PlayerConfig = {
     scene: Phaser.Scene,
@@ -19,10 +20,12 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
     declare body: Phaser.Physics.Arcade.Body;
     private cursors: Phaser.Types.Input.Keyboard.CursorKeys;
 
+    private debugText: Phaser.GameObjects.Text;
+
     parameters = {
         hSpeed: 250,
         jumpPower: 500,
-        maxLives: 3,
+        maxLives: 1,
     } as const;
 
     dead = false;
@@ -40,8 +43,7 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
         this.setCollideWorldBounds(true);
 
         // this.body.maxVelocity.y = params.vMaxY;
-        // this.setBodySize(20, 32, true);
-        // this.body.setSize(20, 32, 5, 16);
+        this.setBodySize(20, 42, true);
         
         this.anims.create({
             key: Animations.right, 
@@ -73,6 +75,9 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
                 y: 0.5,
             },
         });
+
+        const { height } = SceneHelper.GetScreenSize(this.scene);
+        this.debugText = this.scene.add.text(5, height-10, "", { align: "left", fontSize: 8 });
     }
 
     get idleFrame(): number {
@@ -82,12 +87,17 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
         return this.anims.currentAnim?.key === Animations.left ? 5 : 2;
     }
 
-    canThrow(bull: Bull): void {
+    tryThrow(bull: Bull): void {
         if (!this.cursors.space.isDown) {
             return;
         }
 
-        const throwPower = { min: -500, max: -900 };
+        if (bull.exploding && bull.body.velocity.y < 0) {
+            // Cannot throw bull when going up
+            return;
+        }
+
+        const throwPower = { min: -400, max: -600 };
         const accurracy = 100; // if target dir is X, then aim will be in range [X-accurracy; X+accurracy]
 
         const xDirection = this.target ? this.target.x - this.x : this.x;

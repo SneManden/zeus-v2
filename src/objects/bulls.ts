@@ -7,6 +7,7 @@ export class Bull extends Explodable(Phaser.Physics.Arcade.Sprite) {
     declare body: Phaser.Physics.Arcade.Body;
 
     paralyzed = false;
+    private canWakeUp = false;
 
     parameters = {
         hSpeed: { min: 100, max: 300 },
@@ -39,15 +40,16 @@ export class Bull extends Explodable(Phaser.Physics.Arcade.Sprite) {
         this.setFrame(2);
 
         const wakeUpIn = Phaser.Math.RND.between(this.parameters.paralysisTime.min, this.parameters.paralysisTime.max);
-        this.scene.time.delayedCall(wakeUpIn, () => this.wakeUp());
+        this.scene.time.delayedCall(wakeUpIn, () => this.canWakeUp = true);
     }
 
     wakeUp(): void {
-        if (!this.paralyzed) {
+        if (!this.paralyzed || !this.canWakeUp) {
             return;
         }
 
         this.paralyzed = false;
+        this.canWakeUp = false;
 
         const { min: vMin, max: vMax } = this.parameters.hSpeed;
         const vx = Phaser.Math.RND.sign() * Phaser.Math.RND.between(vMin, vMax);
@@ -62,6 +64,10 @@ export class Bull extends Explodable(Phaser.Physics.Arcade.Sprite) {
             this.setActive(false);
             this.setVisible(false);
             return;
+        }
+
+        if (this.body.touching.down) {
+            this.wakeUp();
         }
 
         if (this.exploding || this.paralyzed) {
