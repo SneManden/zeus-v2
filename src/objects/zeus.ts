@@ -66,13 +66,13 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		// this.canFire = 0;
 		// this.enableCrosshair = true;
 		// this.fireTimer = 0;
+		
 		// // Crosshair
 		this.crosshair = this.scene.physics.add.sprite(this.x, this.y, Preloader.assets.crosshair);
 		this.crosshair.body.setAllowGravity(false);
 		this.crosshair.setScale(0.5);
-		// this.crosshair.anchor.set(0.5, 0.5);
-		// game.world.add(this.crosshair);
-		// // Lightning effects, wooo
+
+		// Lightning effects, wooo
 		// this.lightningBitmap = this.game.add.bitmapData(200, 300);
 		// this.lightning = this.game.add.image(this.game.width/2, 20, this.lightningBitmap);
 		// this.lightning.anchor.set(0.5, 0);
@@ -100,10 +100,6 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 	// 		this.follow(this.player);
 	// 		this.reactTimer = this.game.time.now + Math.random()*this.params.react;
 	// 	}
-
-	
-	// 	if (this.enableCrosshair)
-	// 		this.aim(this.player);
 
 	// 	/*if (this.player && this.game.time.now > this.canFire) {
 	// 		this.enableCrosshair = true;
@@ -150,30 +146,18 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		const distanceVector = target.body!.center.subtract(this.crosshair);
 		const precision = 50;
 		
+		this.crosshair.setFrame(0);
+		
 		if (distanceVector.length() > precision) {
 			const { x: vx, y: vy } = distanceVector.normalize().scale(100);
 			this.crosshair.setVelocity(vx, vy);
+		} else {
+			this.crosshair.setFrame(1);
+			this.scene.time.delayedCall(500, () => this.zap());
 		}
 	}
 
 	// aim(object) {
-	// 	if (!object || !object.alive)
-	// 		return;
-	// 	// Move towards object
-	// 	let hDist = object.x - this.crosshair.x;
-	// 	let vDist = object.y - this.crosshair.y;
-	// 	let prec = 20;
-	// 	if (hDist < -prec) {
-	// 		this.crosshair.x -= 1; //this.params.aimhSpeed;
-	// 	} else if (hDist > prec) {
-	// 		this.crosshair.x += 1; //this.params.aimhSpeed;
-	// 	}
-	// 	if (vDist < -prec/2) {
-	// 		this.crosshair.y -= 0.5;
-	// 	} else if (vDist > prec/2) {
-	// 		this.crosshair.y += 0.5;
-	// 	}
-
 	// 	if (this.game.time.now > this.canFire) {
 	// 		// If close enough: fire
 	// 		if (this.game.physics.arcade.distanceBetween(this.crosshair, object) < prec) {
@@ -185,6 +169,10 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 	// 		this.crosshair.frame = 1;
 	// 	}
 	// }
+
+	zap(): void {
+
+	}
 
 	// zap() {
 	// 	let dist = this.game.physics.arcade.distanceBetween(this.crosshair, this.player);
