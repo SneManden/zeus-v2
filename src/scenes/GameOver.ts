@@ -7,6 +7,10 @@ export class GameOver extends Scene
     background: Phaser.GameObjects.Image;
     gameover_text : Phaser.GameObjects.Text;
 
+    canContinue = false;
+
+    space: Phaser.Input.Keyboard.Key | null;
+
     constructor ()
     {
         super('GameOver');
@@ -26,8 +30,16 @@ export class GameOver extends Scene
         });
         this.gameover_text.setOrigin(0.5);
 
-        this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).on("up", () => {
-            this.scene.start('MainMenu');
-        });
+        this.space = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE) ?? null;
+
+        this.time.delayedCall(5_000, () => this.canContinue = true);
+    }
+
+    update(time: number, delta: number): void {
+        super.update(time, delta);
+
+        if (this.canContinue && this.space?.isDown) {
+            this.scene.start("MainMenu");
+        }
     }
 }

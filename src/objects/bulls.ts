@@ -10,6 +10,7 @@ export class Bull extends Explodable(Phaser.Physics.Arcade.Sprite) {
 
     parameters = {
         hSpeed: { min: 100, max: 300 },
+        paralysisTime: { min: 3_000, max: 5_000 },
     } as const;
 
     constructor(scene: Scene, x: number, y: number) {
@@ -36,6 +37,21 @@ export class Bull extends Explodable(Phaser.Physics.Arcade.Sprite) {
         this.setVelocityX(0);
         this.anims.stop();
         this.setFrame(2);
+
+        const wakeUpIn = Phaser.Math.RND.between(this.parameters.paralysisTime.min, this.parameters.paralysisTime.max);
+        this.scene.time.delayedCall(wakeUpIn, () => this.wakeUp());
+    }
+
+    wakeUp(): void {
+        if (!this.paralyzed) {
+            return;
+        }
+
+        this.paralyzed = false;
+
+        const { min: vMin, max: vMax } = this.parameters.hSpeed;
+        const vx = Phaser.Math.RND.sign() * Phaser.Math.RND.between(vMin, vMax);
+        this.setVelocityX(vx);
     }
 
     protected preUpdate(time: number, delta: number): void {
