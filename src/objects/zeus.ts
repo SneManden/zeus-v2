@@ -40,6 +40,8 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 
     healthBar: Phaser.GameObjects.Rectangle;
 
+	crosshair: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+
 	constructor({ scene, x, y, target }: ZeusConfig) {
         super(scene, x, y, Preloader.assets.zeus, 0);
 
@@ -65,7 +67,9 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		// this.enableCrosshair = true;
 		// this.fireTimer = 0;
 		// // Crosshair
-		// this.crosshair = new Phaser.Sprite(game, this.x, this.y, "crosshair");
+		this.crosshair = this.scene.physics.add.sprite(this.x, this.y, Preloader.assets.crosshair);
+		this.crosshair.body.setAllowGravity(false);
+		this.crosshair.setScale(0.5);
 		// this.crosshair.anchor.set(0.5, 0.5);
 		// game.world.add(this.crosshair);
 		// // Lightning effects, wooo
@@ -73,7 +77,6 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		// this.lightning = this.game.add.image(this.game.width/2, 20, this.lightningBitmap);
 		// this.lightning.anchor.set(0.5, 0);
 
-		// this.health = this.maxHealth = 100;
 		// this.canTakeHit = true;
 
 		// this.dead = false;
@@ -89,12 +92,16 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
         if (this.target) {
             this.follow(this.target);
         }
-    
+		
+		if (this.target) {
+			this.aim(this.target);
+		}
 	// 	if (this.player && this.game.time.now > this.reactTimer) {
 	// 		this.follow(this.player);
 	// 		this.reactTimer = this.game.time.now + Math.random()*this.params.react;
 	// 	}
 
+	
 	// 	if (this.enableCrosshair)
 	// 		this.aim(this.player);
 
@@ -132,30 +139,22 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		});
 	}
 
-    private createHealthbar(): Phaser.GameObjects.Rectangle {
-        const { width } = SceneHelper.GetScreenSize(this.scene);
-        
-        const barWidth = this.parameters.maxHealth;
-        const barHeight = 10;
-        
-        const x = width/2, y = 5;
-        
-        this.scene.add.rectangle(x, y, barWidth, barHeight, 0xffffff);
-        const bar = this.scene.add.rectangle(x - barWidth/2, y, 0, barHeight, 0x00ff00);
-
-        return bar;
-    }
-
-	private updateHealthbar(): void {
-		this.healthBar.width = this.health;
-	}
-
     die(): void {
         this.dead = true;
 
         const scenes = this.scene.scene;
         this.scene.time.delayedCall(2_000, () => scenes.start("GameWon"));
     }
+
+	aim(target: Phaser.Physics.Arcade.Sprite): void {
+		const distanceVector = target.body!.center.subtract(this.crosshair);
+		const precision = 50;
+		
+		if (distanceVector.length() > precision) {
+			const { x: vx, y: vy } = distanceVector.normalize().scale(100);
+			this.crosshair.setVelocity(vx, vy);
+		}
+	}
 
 	// aim(object) {
 	// 	if (!object || !object.alive)
@@ -266,4 +265,21 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		}
 	}
 
+    private createHealthbar(): Phaser.GameObjects.Rectangle {
+        const { width } = SceneHelper.GetScreenSize(this.scene);
+        
+        const barWidth = this.parameters.maxHealth;
+        const barHeight = 10;
+        
+        const x = width/2, y = 5;
+        
+        this.scene.add.rectangle(x, y, barWidth, barHeight, 0xffffff);
+        const bar = this.scene.add.rectangle(x - barWidth/2, y, 0, barHeight, 0x00ff00);
+
+        return bar;
+    }
+
+	private updateHealthbar(): void {
+		this.healthBar.width = this.health;
+	}
 }
