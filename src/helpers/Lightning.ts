@@ -1,3 +1,4 @@
+import { v2s } from "./utils";
 
 type Pos = { x: number; y: number };
 
@@ -14,7 +15,7 @@ const defaultLightningOptions: Required<Omit<LightningOptions, "from" | "to">> =
     segments: 20,
     width: 200,
     minSegmentLength: 20,
-    segmentZigZagPotential: 30,
+    segmentZigZagPotential: 50,
 };
 
 export class Lightning {
@@ -35,7 +36,7 @@ export class Lightning {
         const v_from = new Phaser.Math.Vector2(from);
         const v_to = new Phaser.Math.Vector2(to);
 
-        console.log("drawLightning(g, options:", options, ")", { segments, width, minSegmentLength, segmentZigZagPotential });
+        console.log("drawLightning(g, options: { from:", v2s(from), ", to:", v2s(to), " })", { segments, width, minSegmentLength, segmentZigZagPotential });
 
         const widthAtY = (yy: number): { min: number, max: number } => {
             const lerp = v_from.lerp(v_to, yy / distanceY);
@@ -50,25 +51,38 @@ export class Lightning {
             g.moveTo(x, y);
 
             // Set new x
-            x += Phaser.Math.RND.between(-segmentZigZagPotential, segmentZigZagPotential);
-            const { min, max } = widthAtY(y);
-            x = Phaser.Math.Clamp(x, min, max);
+            const downPercentage = (y - from.y) / (distanceY - from.y);
+            const lerpX = v_from.lerp(v_to, downPercentage).x; // x position on line from 'from' to 'to' at current y
+
+            const xDist = x - lerpX; // positive if lightning is to the right of straight line
+
+            console.log("[",i,"] at x=",x," y=", y, ": downFrac", Phaser.Math.RoundTo(downPercentage,-2), ", lerpX", lerpX, ", xDist", xDist);
+            
+            const zigZagPotential_i = segmentZigZagPotential * (1- downPercentage);
+            const xDist_i = xDist * downPercentage;
+            if (xDist > 0) {
+                console.log("  x += rnd in [",-zigZagPotential_i,", ",zigZagPotential_i - xDist_i,"]")
+                x += Math.round(Phaser.Math.RND.realInRange(-zigZagPotential_i, zigZagPotential_i - xDist_i));
+            } else {
+                console.log("  x += rnd in [",-zigZagPotential_i - xDist_i,", ",zigZagPotential_i,"]")
+                x += Math.round(Phaser.Math.RND.realInRange(-zigZagPotential_i - xDist_i, zigZagPotential_i));
+            }
+            // const { min, max } = widthAtY(y);
+            // x = Phaser.Math.Clamp(x, min, max);
 
             // Set new y
-            y += Phaser.Math.RND.between(minSegmentLength, distanceY / segments);
-            if (y >= distanceY || isLastIteration(i)) {
-                y = distanceY;
+            y += Math.round(Phaser.Math.RND.realInRange(minSegmentLength, distanceY / segments));
+            if (y >= to.y || isLastIteration(i)) {
+                y = to.y;
             }
 
             g.lineTo(x, y);
             g.strokePath();
 
-            if (y === distanceY) {
+            if (y === to.y) {
                 break;
             }
-        }
-        
-        g.closePath();
+        }        
     }
 
 
