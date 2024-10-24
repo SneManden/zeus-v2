@@ -1,127 +1,136 @@
 import { v2s } from "./utils";
 
 type Pos = { x: number; y: number };
+type SegmentType = "main" | `fork-${number}`;
+type Segment = { a: Pos; b: Pos; type: SegmentType; };
+
+const createSegment = (a: Pos, b: Pos, type: SegmentType = "main"): Segment => ({ a: { x: a.x, y: a.y }, b: { x: b.x, y: b.y }, type });
+const asVector = (p: Pos): Phaser.Math.Vector2 => new Phaser.Math.Vector2(p.x, p.y);
+const segmentAsVector = (s: Segment): Phaser.Math.Vector2 => asVector(s.b).subtract(asVector(s.a));
+const pointAt = (s: Segment, t: number): Pos => Phaser.Math.LinearXY(asVector(s.a), asVector(s.b), t);
+
+const pointToString = (p: Pos): string => `(${Math.round(p.x)}, ${Math.round(p.y)})`;
+const segToString = (s: Segment, withType = false): string => `${pointToString(s.a)}->${pointToString(s.b)}` + (withType ? ` (${s.type})` : "");
 
 type LightningOptions = {
     from: Pos;
     to: Pos;
-    segments?: number;
-    width?: number;
-    minSegmentLength?: number;
-    segmentZigZagPotential?: number;
+    sway?: number;
+    forkProb?: number;
+    generations?: number;
 };
 
 const defaultLightningOptions: Required<Omit<LightningOptions, "from" | "to">> = {
-    segments: 20,
-    width: 200,
-    minSegmentLength: 20,
-    segmentZigZagPotential: 50,
+    sway: 80,
+    forkProb: 0.4,
+    generations: 5,
 };
 
 export class Lightning {
 
     static drawLightning(g: Phaser.GameObjects.Graphics, options: LightningOptions): void {
-        const { from, to, segments, width, minSegmentLength, segmentZigZagPotential } = { ...options, ...defaultLightningOptions };
-        // const { width: screenWidth, height: screenHeight } = SceneHelper.GetScreenSize(g.scene);
+        const lightningBoltSegments = this.createLightningBoltSegments({ ...options, ...defaultLightningOptions });
         
         g.clearAlpha();
         g.clear();
-        
-        g.lineStyle(3, 0xffffff);
 
-        let { x, y } = from;
+        const sortOrder: { [K in SegmentType]: number } = {
+            main: 1,
+            "fork-1": 2,
+            "fork-2": 3,
+            "fork-3": 4,
+        }
 
-        const distanceY = to.y - from.y;
+        // Sort descending according to sortOrder
+        lightningBoltSegments.sort((a, b) => sortOrder[b.type]-sortOrder[a.type]);
 
-        const v_from = new Phaser.Math.Vector2(from);
-        const v_to = new Phaser.Math.Vector2(to);
-
-        console.log("drawLightning(g, options: { from:", v2s(from), ", to:", v2s(to), " })", { segments, width, minSegmentLength, segmentZigZagPotential });
-
-        const widthAtY = (yy: number): { min: number, max: number } => {
-            const lerp = v_from.lerp(v_to, yy / distanceY);
-            return { min: lerp.x - width/2, max: lerp.x + width/2 };
-        };
-
-        const isLastIteration = (i: number) => i === segments - 1;
-
-        // Segment
-        for (let i=0; i<segments; i++) {
-            g.beginPath();
-            g.moveTo(x, y);
-
-            // Set new x
-            const downPercentage = (y - from.y) / (distanceY - from.y);
-            const lerpX = v_from.lerp(v_to, downPercentage).x; // x position on line from 'from' to 'to' at current y
-
-            const xDist = x - lerpX; // positive if lightning is to the right of straight line
-
-            console.log("[",i,"] at x=",x," y=", y, ": downFrac", Phaser.Math.RoundTo(downPercentage,-2), ", lerpX", lerpX, ", xDist", xDist);
+        for (const segment of lightningBoltSegments) {
+            console.log("Drawing segment", segToString(segment, true));
+            switch (segment.type) {
+                case "main":
+                    g.lineStyle(2, 0xffff00);
+                    break;
+                case "fork-1":
+                    g.lineStyle(1.8, 0xffff00, 0.8);
+                    break;
+                case "fork-2":
+                    g.lineStyle(1.6, 0xffff00, 0.6);
+                    break;
+                    case "fork-2":
+                        g.lineStyle(1.4, 0xffff00, 0.4);
+                        break;
+            }
             
-            const zigZagPotential_i = segmentZigZagPotential * (1- downPercentage);
-            const xDist_i = xDist * downPercentage;
-            if (xDist > 0) {
-                console.log("  x += rnd in [",-zigZagPotential_i,", ",zigZagPotential_i - xDist_i,"]")
-                x += Math.round(Phaser.Math.RND.realInRange(-zigZagPotential_i, zigZagPotential_i - xDist_i));
-            } else {
-                console.log("  x += rnd in [",-zigZagPotential_i - xDist_i,", ",zigZagPotential_i,"]")
-                x += Math.round(Phaser.Math.RND.realInRange(-zigZagPotential_i - xDist_i, zigZagPotential_i));
-            }
-            // const { min, max } = widthAtY(y);
-            // x = Phaser.Math.Clamp(x, min, max);
-
-            // Set new y
-            y += Math.round(Phaser.Math.RND.realInRange(minSegmentLength, distanceY / segments));
-            if (y >= to.y || isLastIteration(i)) {
-                y = to.y;
-            }
-
-            g.lineTo(x, y);
+            g.beginPath();
+            g.moveTo(segment.a.x, segment.a.y);
+            g.lineTo(segment.b.x, segment.b.y);
             g.strokePath();
-
-            if (y === to.y) {
-                break;
-            }
-        }        
+            g.closePath();
+        }
     }
 
+    private static createLightningBoltSegments(options: Required<LightningOptions>): Segment[] {
+        const { from, to, sway, forkProb, generations } = options;
 
-	// createLightning(distance) {
-	// 	console.log("Lightning!");
-	// 	let ctx = this.lightningBitmap.context,
-	// 		width = this.lightningBitmap.width,
-	// 		height = this.lightningBitmap.height;
+        console.log("createLightningBoltSegments(from:", pointToString(from), ", to:", pointToString(to), ")");
+        
+        let segments: Segment[] = [createSegment(from, to)];
 
-	// 	ctx.clearRect(0, 0, width, height);
+        let offset = sway;
 
-	// 	// TODO: create from bottom
+        for (let generation=0; generation<generations; generation++) {
 
-	// 	let x = width/2,
-	// 		y = 0,
-	// 		segments = 20;
+            const updatedSegments: Segment[] = [];
+            for (const segment of segments) {
+                const normal = segmentAsVector(segment).normalize();
+                const perp = normal.normalizeRightHand();
+                
+                // Split segment S from A->B at point T into S1 = A->T and S2 = T->B
+                // where T is along the perpendicular vector of A->B from some point sT along S.
+                const t = Phaser.Math.RND.realInRange(0.4, 0.6);
+                const sT = pointAt(segment, t);
 
-	// 	for (var i=0; i<segments; i++) {
-	// 		ctx.strokeStyle = 'rgb(255,255,255)';
-	// 		ctx.lineWidth = 3;
-	// 		ctx.beginPath();
-	// 		ctx.moveTo(x, y);
+                const pT = asVector(sT).add(perp.scale(Phaser.Math.RND.realInRange(-offset, offset)));
+                
+                const s1 = createSegment(segment.a, pT, segment.type);
+                const s2 = createSegment(pT, segment.b, segment.type);
+                updatedSegments.push(s1, s2);
 
-	// 		x += this.game.rnd.between(-30, 30);
-	// 		if (x < 10) x = 10;
-	// 		if (x > width-10) x = width-10;
+                console.log("Split S=", segToString(segment), "at pT=", pointToString(pT), "into s1=", segToString(s1), "and s2=", segToString(s2));
+                console.log("  with S originaly divided at point sT=", pointToString(sT), " for t=", t);
 
-	// 		y += this.game.rnd.between(20, height/segments);
-	// 		if (i == segments-1 || y > distance)
-	// 			y = distance;
+                // Fork
+                const forkG = segment.type === "main"
+                    ? 1
+                    : segment.type === "fork-1"
+                    ? 2
+                    : segment.type === "fork-2"
+                    ? 3
+                    : null;
+                const doFork = Math.random() <= forkProb;
+                console.log("fork?", doFork, "(forkG:", forkG, ")");
+                if (forkG !== null && doFork) {
+                    // Add segment from pT to X tangent to s1 with same length as s2
+                    const v_s2 = segmentAsVector(s2);
+                    const v_s1 = segmentAsVector(s1);
+                    const length = v_s2.length();
+                    const tangent = v_s1.clone().normalize();   
+                    const pX = pT.clone().add(tangent.rotate(Phaser.Math.RND.realInRange(-Math.PI/8, Math.PI/8)).scale(0.7 * length));
+                    const s3 = createSegment(pT, pX, `fork-${forkG}`);
 
-	// 		ctx.lineTo(x, y);
-	// 		ctx.stroke();
+                    console.log("  Fork creating segment s3=", segToString(s3), "with fork generation", forkG);
+                    console.log("  where |s2|=", length, "(vector s2=",pointToString(v_s2),")");
+                    
+                    updatedSegments.push(s3);
+                }
+            }
+            
+            segments = [...updatedSegments];
+            offset /= 2;
+        }
 
-	// 		if (y >= distance)
-	// 			break;
-	// 	}
+        console.log("createLigtningBoltSegments =>", segments.map(s => segToString(s, true)));
 
-	// 	this.lightningBitmap.dirty = true; // update texture cache
-	// }
-    
+        return segments;
+    }
 }
