@@ -20,11 +20,17 @@ type LightningOptions = {
 };
 
 const defaultLightningOptions: Required<Omit<LightningOptions, "from" | "to">> = {
-    sway: 80,
-    maxFork: 4,
-    forkProb: 0.5,
+    sway: 35,
+    maxFork: 3,
+    forkProb: 0.9,
     generations: 5,
 };
+
+type LightningTree = {
+    segment: Segment;
+    next: LightningTree | null;
+    fork: LightningTree | null;
+}
 
 export class Lightning {
     private g: Phaser.GameObjects.Graphics;
@@ -33,13 +39,39 @@ export class Lightning {
         this.g = this.scene.add.graphics();
     }
 
-    createLightning(options: LightningOptions) {
-        const lightningBoltSegments = this.createLightningBoltSegments({ ...options, ...defaultLightningOptions });
-        
-        // Sort descending according to type
-        lightningBoltSegments.sort((a, b) => b.type - a.type);
+    createLightning(options: LightningOptions): void {
+        const optionValues = options = { ...defaultLightningOptions, ...options };
+        const segments = this.createLightningBoltSegments(optionValues);
 
-        this.drawLightning(lightningBoltSegments);
+        const { from, to } = options;
+        const perp = asVector(from).subtract(asVector(to)).normalizeLeftHand().normalize();
+        const radius = 100;
+        const center = asVector(to).add(asVector(from).subtract(asVector(to)).normalize().scale(radius));
+        
+        // Major branch 1
+        const mb1_start = segments[0].b;
+        const mb1_end = center.clone().add(perp.clone().scale(radius));
+        const mb1 = this.createLightningBoltSegments({ ...optionValues, from: mb1_start, to: mb1_end });
+        mb1.forEach(segment => segment.type++);
+        segments.push(...mb1);
+
+        // Major branch 1
+        const mb2_start = segments[1].b;
+        const mb2_end = center.clone().add(perp.clone().scale(-radius));
+        const mb2 = this.createLightningBoltSegments({ ...optionValues, from: mb2_start, to: mb2_end });
+        mb2.forEach(segment => segment.type++);
+        segments.push(...mb2);
+
+        // TODO: Fix drawing order of segments...
+        this.drawLightning(segments);
+
+        // helper 
+        // this.g.lineStyle(1, 0xff0000, 1);
+        // this.g.strokeCircle(center.x, center.y, radius);
+        // this.g.fillStyle(0x00ff00);
+        // this.g.fillCircle(mb1_end.x, mb1_end.y, 3);
+        // this.g.fillStyle(0x0000ff);
+        // this.g.fillCircle(mb2_end.x, mb2_end.y, 3);
     }
 
     private drawLightning(lightningBoltSegments: Segment[]): void {
@@ -47,6 +79,7 @@ export class Lightning {
         
         g.clearAlpha();
         g.clear();
+        g.postFX.clear();
 
         const lightningColor = 0xffffdd;
 
@@ -61,40 +94,48 @@ export class Lightning {
             g.strokePath();
         };
 
-        let segmentsDrawnIndex = 0;
-
-        this.scene.tweens.addCounter({
-            from: 0,
-            to: lightningBoltSegments.length - 1,
-            duration: 1_500,
-            yoyo: false,
-            repeat: 0,
-            onUpdate: (tween) => {
-                const value = Math.round(tween.getValue());
-                for (let index=segmentsDrawnIndex; index<value; index++) {
-                    const segment = lightningBoltSegments[index];
-                    drawSegment(segment);
-                }
-                segmentsDrawnIndex = value;
-            },
-            onComplete: () => {
-                g.clear();
-                for (const segment of lightningBoltSegments.filter(s => s.type === 0)) {
-                    drawSegment(segment);
-                }
-
-                const glow = g.postFX.addGlow(lightningColor, 10);
-                this.scene.tweens.addCounter({
-                    from: 10,
-                    to: 0,
-                    duration: 1_500,
-                    repeat: 0,
-                    onUpdate: (tween) => {
-                        glow.outerStrength = tween.getValue();
-                    },
-                });
+        const drawAllSegments = (predicate: (segment: Segment) => boolean): void => {
+            for (const segment of lightningBoltSegments.filter(predicate)) {
+                drawSegment(segment);
             }
-        });
+        }
+
+        drawAllSegments(_ => true);
+
+        // const findDestinationTime = 1_500;
+        // const maxGlow = 50;
+
+        // let segmentsDrawnIndex = 0;
+        // this.scene.tweens.addCounter({
+        //     from: 0,
+        //     to: lightningBoltSegments.length - 1,
+        //     duration: findDestinationTime,
+        //     yoyo: false,
+        //     repeat: 0,
+        //     onUpdate: (tween) => {
+        //         const value = Math.round(tween.getValue());
+        //         for (let index=segmentsDrawnIndex; index<value; index++) {
+        //             const segment = lightningBoltSegments[index];
+        //             drawSegment(segment);
+        //         }
+        //         segmentsDrawnIndex = value;
+        //     },
+        //     onComplete: () => {
+        //         g.clear();
+        //         drawAllSegments(s => s.type === 0);
+
+        //         const glow = g.postFX.addGlow(lightningColor, maxGlow, undefined, undefined, undefined, 20);
+        //         this.scene.tweens.addCounter({
+        //             from: maxGlow,
+        //             to: 0,
+        //             duration: 1_500,
+        //             repeat: 0,
+        //             onUpdate: (tween) => {
+        //                 glow.outerStrength = tween.getValue();
+        //             },
+        //         });
+        //     }
+        // });
     }
 
     private createLightningBoltSegments(options: Required<LightningOptions>): Segment[] {
@@ -105,7 +146,6 @@ export class Lightning {
         let segments: Segment[] = [createSegment(from, to)];
 
         let offset = sway;
-
         for (let generation=0; generation<generations; generation++) {
 
             const updatedSegments: Segment[] = [];
@@ -124,13 +164,12 @@ export class Lightning {
                 const s2 = createSegment(pT, segment.b, segment.type);
                 updatedSegments.push(s1, s2);
 
-                console.log("Split S=", segToString(segment), "at pT=", pointToString(pT), "into s1=", segToString(s1), "and s2=", segToString(s2));
-                console.log("  with S originaly divided at point sT=", pointToString(sT), " for t=", t);
+                // console.log("Split S=", segToString(segment), "at pT=", pointToString(pT), "into s1=", segToString(s1), "and s2=", segToString(s2));
+                // console.log("  with S originaly divided at point sT=", pointToString(sT), " for t=", t);
 
                 // Fork
                 const fork = segment.type + 1;
-                const doFork = Math.random() <= forkProb;
-                if (fork < maxFork && doFork) {
+                if (fork < maxFork && Math.random() <= forkProb) {
                     // Add segment from pT to X tangent to s1 with same length as s2
                     const v_s2 = segmentAsVector(s2);
                     const v_s1 = segmentAsVector(s1);
@@ -139,8 +178,8 @@ export class Lightning {
                     const pX = pT.clone().add(tangent.rotate(Phaser.Math.RND.realInRange(-Math.PI/8, Math.PI/8)).scale(0.7 * length));
                     const s3 = createSegment(pT, pX, fork);
 
-                    console.log("  Fork creating segment s3=", segToString(s3), "with fork generation", fork);
-                    console.log("  where |s2|=", length, "(vector s2=",pointToString(v_s2),")");
+                    // console.log("  Fork creating segment s3=", segToString(s3), "with fork generation", fork);
+                    // console.log("  where |s2|=", length, "(vector s2=",pointToString(v_s2),")");
                     
                     updatedSegments.push(s3);
                 }
@@ -149,6 +188,10 @@ export class Lightning {
             segments = [...updatedSegments];
             offset /= 2;
         }
+
+        // const treeRoot: LightningTree = { segment: segments[0], next: null, fork: null };
+        // for (const segment of segments.slice(1)) {
+        // }
 
         console.log("createLigtningBoltSegments =>", segments.map(s => segToString(s, true)));
 
