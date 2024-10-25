@@ -35,6 +35,10 @@ export class Lightning {
 
     createLightning(options: LightningOptions) {
         const lightningBoltSegments = this.createLightningBoltSegments({ ...options, ...defaultLightningOptions });
+        
+        // Sort descending according to type
+        lightningBoltSegments.sort((a, b) => b.type - a.type);
+
         this.drawLightning(lightningBoltSegments);
     }
 
@@ -44,22 +48,53 @@ export class Lightning {
         g.clearAlpha();
         g.clear();
 
-        // Sort descending according to sortOrder
-        lightningBoltSegments.sort((a, b) => b.type - a.type);
+        const lightningColor = 0xffffdd;
 
-        for (const segment of lightningBoltSegments) {
-            console.log("Drawing segment", segToString(segment, true));
-
+        const drawSegment = (segment: Segment): void => {
             const width = 2 - 0.2*(segment.type);
             const alpha = 1 - 0.2*(segment.type);
-            g.lineStyle(width, 0xffff00, alpha);
+            g.lineStyle(width, lightningColor, alpha);
             
             g.beginPath();
             g.moveTo(segment.a.x, segment.a.y);
             g.lineTo(segment.b.x, segment.b.y);
             g.strokePath();
-            g.closePath();
-        }
+        };
+
+        let segmentsDrawnIndex = 0;
+
+        this.scene.tweens.addCounter({
+            from: 0,
+            to: lightningBoltSegments.length - 1,
+            duration: 1_500,
+            yoyo: false,
+            repeat: 0,
+            onUpdate: (tween) => {
+                const value = Math.round(tween.getValue());
+                for (let index=segmentsDrawnIndex; index<value; index++) {
+                    const segment = lightningBoltSegments[index];
+                    drawSegment(segment);
+                }
+                segmentsDrawnIndex = value;
+            },
+            onComplete: () => {
+                g.clear();
+                for (const segment of lightningBoltSegments.filter(s => s.type === 0)) {
+                    drawSegment(segment);
+                }
+
+                const glow = g.postFX.addGlow(lightningColor, 10);
+                this.scene.tweens.addCounter({
+                    from: 10,
+                    to: 0,
+                    duration: 1_500,
+                    repeat: 0,
+                    onUpdate: (tween) => {
+                        glow.outerStrength = tween.getValue();
+                    },
+                });
+            }
+        });
     }
 
     private createLightningBoltSegments(options: Required<LightningOptions>): Segment[] {
