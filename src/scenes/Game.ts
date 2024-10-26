@@ -30,7 +30,7 @@ export class Game extends Scene {
         statics.add(ground);
 
         this.player = new Player({ scene: this, x: w/2, y: 160 });
-        this.zeus = new Zeus({ scene: this, x: w/2, y: 32, target: this.player });
+        this.zeus = new Zeus({ scene: this, x: w/2, y: 32, player: this.player });
 
         this.player.target = this.zeus;
 
@@ -51,23 +51,22 @@ export class Game extends Scene {
         this.physics.add.collider(
             this.player,
             bulls,
-            (oPlayer, oBull) => {
+            (_, oBull) => {
                 const bull = oBull as Bull;
-                const player = oPlayer as Player;
 
                 const explodeVx = 2 * bull.body.velocity.x;
                 
                 if (bull.body.touching.left || bull.body.touching.right) {
-                    player.explode({ x: explodeVx, y: -player.parameters.jumpPower, frame: 8, rotate: true });
+                    this.player.explode({ x: explodeVx, y: -this.player.parameters.jumpPower, frame: 8, rotate: true });
                     bull.setVelocityX(-Math.sign(explodeVx) * bull.parameters.hSpeed.max);
                 } else {
                     bull.paralyze(); // Fix wrong type, is really Bull
                 }
             },
-            (oPlayer, oBull) => bullCanCollide(oBull as Bull) && !(oPlayer as Player).exploding);
+            (_, oBull) => bullCanCollide(oBull as Bull) && playerCanCollideBull());
         
         const bullCanCollide = (bull: Bull) => bull.active && !bull.paralyzed;
-            
+        const playerCanCollideBull = () => this.player.canTakeHit && !this.player.exploding;
 
         this.physics.add.overlap(
             this.player,
@@ -79,12 +78,26 @@ export class Game extends Scene {
         const zeusTakeDamage = this.physics.add.overlap(
             this.zeus,
             bulls,
-            (_z, oBull) => {
+            (_, oBull) => {
                 const bull = oBull as Bull;
 
                 zeusTakeDamage.active = false;
                 this.zeus.bullHit(Math.sqrt(bull.body.velocity.length()), () => zeusTakeDamage.active = true);
             },
+        );
+
+        this.physics.add.overlap(
+            this.player,
+            this.zeus.crosshair,
+            _ => this.player.explode(),
+            _ => this.zeus.lightningStriking && this.player.canTakeHit,
+        );
+
+        this.physics.add.overlap(
+            this.zeus.crosshair,
+            bulls,
+            (_, oBull) => (oBull as Bull).explode(),
+            _ => this.zeus.lightningStriking
         );
     }
 }

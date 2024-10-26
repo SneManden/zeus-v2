@@ -40,7 +40,7 @@ export class Lightning {
         this.strikeSound = this.scene.sound.add(Preloader.sounds.lightning);
     }
 
-    addLightning(from: Pos, to: Pos, options?: { creation: LightningBoltOptions; rendering: LightningDrawOptions }): void {
+    addLightning(from: Pos, to: Pos, options?: { creation: LightningBoltOptions; rendering: LightningDrawOptions }, onStrike?: () => void, onComplete?: () => void): void {
         // Create lightning segments
         const creationOptions = { ...defaultLightningBoltOptions, ...options?.creation };
         const segments = this.createLightningBolts(from, to, creationOptions);
@@ -51,10 +51,10 @@ export class Lightning {
 
         // Draw
         const renderingOptions = { ...defaultLightningDrawOptions, ...options?.rendering };
-        this.drawLightning(segments, renderingOptions);
+        this.drawLightning(segments, renderingOptions, onStrike, onComplete);
     }
 
-    private drawLightning(segments: Segment[], options: Required<LightningDrawOptions>): void {
+    private drawLightning(segments: Segment[], options: Required<LightningDrawOptions>, onStrike?: () => void, onComplete?: () => void): void {
         const { findDestinationTime, glowDistance, lightningColor, maxGlow, shakeIntensity, strikeTime } = options;
         
         this.g.clearAlpha();
@@ -79,6 +79,7 @@ export class Lightning {
         }
 
         const lightningStrike = () => {
+            onStrike?.();
             this.g.clear();
             drawAllSegments(s => s.type === 0);
             this.scene.cameras.main.shake(strikeTime, shakeIntensity);
@@ -90,7 +91,10 @@ export class Lightning {
                 to: 0,
                 duration: strikeTime,
                 onUpdate: (tween) => glow.outerStrength = tween.getValue(),
-                onComplete: () => this.g.clear(),
+                onComplete: () => {
+                    this.g.clear();
+                    onComplete?.();
+                },
             });
         };
 

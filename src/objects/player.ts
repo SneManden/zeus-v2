@@ -2,7 +2,6 @@ import { Preloader } from "../scenes/Preloader";
 import { Explodable } from "../mixins/Explodable";
 import { SceneHelper } from "../helpers/SceneHelper";
 import { Bull } from "./bulls";
-import { v2s } from "../helpers/utils";
 
 type PlayerConfig = {
     scene: Phaser.Scene,
@@ -26,11 +25,14 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
         hSpeed: 250,
         jumpPower: 500,
         maxLives: 1,
+		deadDebounce: 750,
     } as const;
 
     dead = false;
     lives: number = this.parameters.maxLives;
     lifeIcons: Phaser.GameObjects.Group;
+
+    canTakeHit = true;
 
     target: { x: number, y: number } | null;
 
@@ -165,9 +167,12 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
         this.setFrame(0);
 
         this.exploding = false;
+        this.canTakeHit = false;
 
         const { width, height } = SceneHelper.GetScreenSize(this.scene);
         this.setPosition(width / 2, height / 2);
+
+        this.scene.time.delayedCall(this.parameters.deadDebounce, () => this.canTakeHit = true);
     }
 
     die(): void {

@@ -2,12 +2,13 @@ import { Lightning } from "../helpers/Lightning";
 import { SceneHelper } from "../helpers/SceneHelper";
 import { Explodable } from "../mixins/Explodable";
 import { Preloader } from "../scenes/Preloader";
+import { Player } from "./player";
 
 type ZeusConfig = {
     scene: Phaser.Scene,
     x: number;
     y: number;
-    target?: Phaser.Physics.Arcade.Sprite;
+    player?: Player;
 }
 
 export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
@@ -26,8 +27,9 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
     } as const;
 
     dead = false;
-    target: Phaser.Physics.Arcade.Sprite | null;
+    player: Player | null;
 	canTakeHit = true;
+	canFire = true;
 	health: number = this.parameters.maxHealth;
 
     shake = this.scene.tweens.create({
@@ -44,11 +46,12 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 	crosshair: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 
 	lightning: Lightning;
+	lightningStriking = false;
 
-	constructor({ scene, x, y, target }: ZeusConfig) {
+	constructor({ scene, x, y, player }: ZeusConfig) {
         super(scene, x, y, Preloader.images.zeus, 0);
 
-        this.target = target ?? null;
+        this.player = player ?? null;
 
         this.scene.add.existing(this);
         this.scene.physics.add.existing(this);
@@ -74,6 +77,7 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		this.crosshair = this.scene.physics.add.sprite(this.x, this.y, Preloader.images.crosshair);
 		this.crosshair.body.setAllowGravity(false);
 		this.crosshair.setScale(0.5);
+		this.crosshair.setAlpha(0);
 
 		// Lightning
 		this.lightning = new Lightning(this.scene);
@@ -90,12 +94,12 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
             return;
         }
 
-        if (this.target) {
-            this.follow(this.target);
+        if (this.player) {
+            this.follow(this.player);
         }
 		
-		if (this.target) {
-			this.aim(this.target);
+		if (this.player) {
+			this.aim(this.player);
 		}
 	// 	if (this.player && this.game.time.now > this.reactTimer) {
 	// 		this.follow(this.player);
@@ -148,12 +152,16 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		const precision = 50;
 		
 		this.crosshair.setFrame(0);
+
+		if (!this.canFire) {
+			this.crosshair.setVelocity(0, 0);
+			return;
+		}
 		
 		if (distanceVector.length() > precision) {
 			const { x: vx, y: vy } = distanceVector.normalize().scale(100);
 			this.crosshair.setVelocity(vx, vy);
-		} else {
-			this.crosshair.setFrame(1);
+		} else if (this.canFire) {
 			this.scene.time.delayedCall(500, () => this.zap());
 		}
 	}
@@ -172,23 +180,26 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 	// }
 
 	zap(): void {
+		if (!this.canFire) {
+			return;
+		}
+		
+		this.canFire = false;
+		this.crosshair.setFrame(1);
 
+		const onStrike = () => this.lightningStriking = true;
+		const onComplete = () => {
+			this.lightningStriking = false;
+			this.crosshair.setFrame(0)
+		};
+		
+		this.lightning.addLightning(this, this.crosshair, undefined, onStrike, onComplete);
+
+		this.scene.time.delayedCall(this.parameters.fireDelay, () => this.canFire = true);
 	}
 
 	// zap() {
 	// 	let dist = this.game.physics.arcade.distanceBetween(this.crosshair, this.player);
-
-	// 	console.log("ZAP!");
-
-	// 	// Create lightning
-	// 	this.lightning.x = this.x;
-	// 	//this.lightning.y = this.y;
-	// 	this.lightning.rotation = this.game.math.angleBetween(
-	// 		this.lightning.x, this.lightning.y, this.crosshair.x, this.crosshair.y
-	// 	) - Math.PI/2;
-	// 	this.createLightning(this.game.physics.arcade.distanceBetween(this, this.crosshair));
-	// 	this.lightning.alpha = 1;
-	// 	this.game.add.tween(this.lightning).to({alpha:0}, 1000, Phaser.Easing.Cubic.In).start();
 
 	// 	if (dist < 64) {
 	// 		// Kill player if within a distance of crosshair
@@ -207,6 +218,11 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 	follow(target: Phaser.Physics.Arcade.Sprite) {
 		let horizontalDistance = target.x - this.x;
 		let precision = 10;
+
+		if (!this.canFire) {
+			this.setVelocityX(0);
+			return;
+		}
 
 		if (horizontalDistance < -precision) {
             this.setVelocityX(-this.parameters.hSpeed);
