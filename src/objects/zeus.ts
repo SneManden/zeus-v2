@@ -12,7 +12,6 @@ type ZeusConfig = {
 }
 
 export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
-
     declare body: Phaser.Physics.Arcade.Body;
 
     parameters = {
@@ -61,17 +60,6 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 
         this.healthBar = this.createHealthbar();
         this.updateHealthbar();
-
-		// this.hpback = game.add.sprite(game.world.width/2 - 128, 0, 'hpback');
-		// this.hp = game.add.sprite(game.world.width/2 - 128, 0, 'hp');
-		// this.hp.cropEnabled = true;
-		// this.hp.maxwidth = 256;
-
-		// // firing
-		// this.reactTimer = 0;
-		// this.canFire = 0;
-		// this.enableCrosshair = true;
-		// this.fireTimer = 0;
 		
 		// Crosshair
 		this.crosshair = this.scene.physics.add.sprite(this.x, this.y, Preloader.images.crosshair);
@@ -81,10 +69,6 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 
 		// Lightning
 		this.lightning = new Lightning(this.scene);
-
-		// this.canTakeHit = true;
-
-		// this.dead = false;
 	}
 
 	preUpdate(time: number, delta: number) {
@@ -101,15 +85,6 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		if (this.player) {
 			this.aim(this.player);
 		}
-	// 	if (this.player && this.game.time.now > this.reactTimer) {
-	// 		this.follow(this.player);
-	// 		this.reactTimer = this.game.time.now + Math.random()*this.params.react;
-	// 	}
-
-	// 	/*if (this.player && this.game.time.now > this.canFire) {
-	// 		this.enableCrosshair = true;
-	// 		this.fireTimer = this.game.time.now + (1+Math.random())*this.params.aimDelay;
-	// 	}*/
 	}
 
 	bullHit(damage: number, canTakeDamageAgain: () => void): void {
@@ -166,19 +141,6 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		}
 	}
 
-	// aim(object) {
-	// 	if (this.game.time.now > this.canFire) {
-	// 		// If close enough: fire
-	// 		if (this.game.physics.arcade.distanceBetween(this.crosshair, object) < prec) {
-	// 			this.game.time.events.add(this.params.aimDelay, this.zap, this);
-	// 			this.canFire = this.game.time.now + this.params.aimDelay + (1+Math.random())*this.params.fireDelay;
-	// 		}
-	// 		this.crosshair.frame = 0;
-	// 	} else {
-	// 		this.crosshair.frame = 1;
-	// 	}
-	// }
-
 	zap(): void {
 		if (!this.canFire) {
 			return;
@@ -197,23 +159,6 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 
 		this.scene.time.delayedCall(this.parameters.fireDelay, () => this.canFire = true);
 	}
-
-	// zap() {
-	// 	let dist = this.game.physics.arcade.distanceBetween(this.crosshair, this.player);
-
-	// 	if (dist < 64) {
-	// 		// Kill player if within a distance of crosshair
-	// 		this.player.explode();
-	// 	}
-	// 	let gpa = this.game.physics.arcade;
-	// 	let ch = this.crosshair;
-	// 	this.game.state.getCurrentState().bulls.forEachAlive(function(bull) {
-	// 		if (gpa.distanceBetween(ch, bull) < 128) {
-	// 			bull.explode();
-	// 		}
-	// 	});
-	// }
-
 
 	follow(target: Phaser.Physics.Arcade.Sprite) {
 		let horizontalDistance = target.x - this.x;

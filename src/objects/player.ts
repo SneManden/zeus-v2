@@ -44,7 +44,6 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
 
         this.setCollideWorldBounds(true);
 
-        // this.body.maxVelocity.y = params.vMaxY;
         this.setBodySize(20, 42, true);
         
         this.anims.create({
