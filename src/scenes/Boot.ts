@@ -16,6 +16,7 @@ export class Boot extends Scene
         //  The smaller the file size of the assets, the better, as the Boot Scene itself has no preloader.
 
         this.load.image(Preloader.assets.background, 'assets/back1.png');
+        this.load.audio('lightning', 'assets/lightning-strike.ogg');
     }
 
     create ()

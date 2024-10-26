@@ -26,17 +26,13 @@ const defaultLightningOptions: Required<Omit<LightningOptions, "from" | "to">> =
     generations: 5,
 };
 
-type LightningTree = {
-    segment: Segment;
-    next: LightningTree | null;
-    fork: LightningTree | null;
-}
-
 export class Lightning {
     private g: Phaser.GameObjects.Graphics;
+    private strikeSound: Phaser.Sound.NoAudioSound | Phaser.Sound.HTML5AudioSound | Phaser.Sound.WebAudioSound;
 
     constructor(private scene: Phaser.Scene) {
         this.g = this.scene.add.graphics();
+        this.strikeSound = this.scene.sound.add("lightning");
     }
 
     createLightning(options: LightningOptions): void {
@@ -62,16 +58,12 @@ export class Lightning {
         mb2.forEach(segment => segment.type++);
         segments.push(...mb2);
 
-        // TODO: Fix drawing order of segments...
-        this.drawLightning(segments);
+        // Order
+        const distanceFromSource = (segment: Segment): number => asVector(segment.a).distance(from);
+        segments.sort((a, b) => distanceFromSource(a) - distanceFromSource(b));
 
-        // helper 
-        // this.g.lineStyle(1, 0xff0000, 1);
-        // this.g.strokeCircle(center.x, center.y, radius);
-        // this.g.fillStyle(0x00ff00);
-        // this.g.fillCircle(mb1_end.x, mb1_end.y, 3);
-        // this.g.fillStyle(0x0000ff);
-        // this.g.fillCircle(mb2_end.x, mb2_end.y, 3);
+        // Draw
+        this.drawLightning(segments);
     }
 
     private drawLightning(lightningBoltSegments: Segment[]): void {
@@ -100,42 +92,46 @@ export class Lightning {
             }
         }
 
-        drawAllSegments(_ => true);
+        const findDestinationTime = 300;
+        const maxGlow = 50;
+        const glowDistance = 20;
+        const strikeTime = 1_000;
+        const shakeIntensity = 0.005;
 
-        // const findDestinationTime = 1_500;
-        // const maxGlow = 50;
+        let segmentsDrawnIndex = 0;
+        this.scene.tweens.addCounter({
+            from: 0,
+            to: lightningBoltSegments.length - 1,
+            duration: findDestinationTime,
+            yoyo: false,
+            repeat: 0,
+            onUpdate: (tween) => {
+                const value = Math.round(tween.getValue());
+                for (let index=segmentsDrawnIndex; index<value; index++) {
+                    const segment = lightningBoltSegments[index];
+                    drawSegment(segment);
+                }
+                segmentsDrawnIndex = value;
+            },
+            onComplete: () => {
+                g.clear();
+                drawAllSegments(s => s.type === 0);
+                this.scene.cameras.main.shake(strikeTime, shakeIntensity);
+                this.strikeSound.play();
 
-        // let segmentsDrawnIndex = 0;
-        // this.scene.tweens.addCounter({
-        //     from: 0,
-        //     to: lightningBoltSegments.length - 1,
-        //     duration: findDestinationTime,
-        //     yoyo: false,
-        //     repeat: 0,
-        //     onUpdate: (tween) => {
-        //         const value = Math.round(tween.getValue());
-        //         for (let index=segmentsDrawnIndex; index<value; index++) {
-        //             const segment = lightningBoltSegments[index];
-        //             drawSegment(segment);
-        //         }
-        //         segmentsDrawnIndex = value;
-        //     },
-        //     onComplete: () => {
-        //         g.clear();
-        //         drawAllSegments(s => s.type === 0);
-
-        //         const glow = g.postFX.addGlow(lightningColor, maxGlow, undefined, undefined, undefined, 20);
-        //         this.scene.tweens.addCounter({
-        //             from: maxGlow,
-        //             to: 0,
-        //             duration: 1_500,
-        //             repeat: 0,
-        //             onUpdate: (tween) => {
-        //                 glow.outerStrength = tween.getValue();
-        //             },
-        //         });
-        //     }
-        // });
+                const glow = g.postFX.addGlow(lightningColor, maxGlow, undefined, undefined, undefined, glowDistance);
+                this.scene.tweens.addCounter({
+                    from: maxGlow,
+                    to: 0,
+                    duration: strikeTime,
+                    repeat: 0,
+                    onUpdate: (tween) => {
+                        glow.outerStrength = tween.getValue();
+                    },
+                    onComplete: () => g.clear(),
+                });
+            }
+        });
     }
 
     private createLightningBoltSegments(options: Required<LightningOptions>): Segment[] {
