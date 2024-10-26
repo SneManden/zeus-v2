@@ -1,30 +1,34 @@
-type Pos = { x: number; y: number };
-type SegmentType = number;
-type Segment = { a: Pos; b: Pos; type: SegmentType; };
+import { Pos, Segment, asVector, createSegment, pointAt, pointToString, segToString, segmentAsVector } from "./utils";
 
-const createSegment = (a: Pos, b: Pos, type: SegmentType = 0): Segment => ({ a: { x: a.x, y: a.y }, b: { x: b.x, y: b.y }, type });
-const asVector = (p: Pos): Phaser.Math.Vector2 => new Phaser.Math.Vector2(p.x, p.y);
-const segmentAsVector = (s: Segment): Phaser.Math.Vector2 => asVector(s.b).subtract(asVector(s.a));
-const pointAt = (s: Segment, t: number): Pos => Phaser.Math.LinearXY(asVector(s.a), asVector(s.b), t);
-
-const pointToString = (p: Pos): string => `(${Math.round(p.x)}, ${Math.round(p.y)})`;
-const segToString = (s: Segment, withType = false): string => `${pointToString(s.a)}->${pointToString(s.b)}` + (withType ? ` (${s.type})` : "");
-
-type LightningOptions = {
-    from: Pos;
-    to: Pos;
+type LightningBoltOptions = {
     sway?: number;
     maxFork?: number;
     forkProb?: number;
     generations?: number;
 };
+type LightningDrawOptions = {
+    lightningColor?: number;
+    findDestinationTime?: number;
+    maxGlow?: number;
+    glowDistance?: number;
+    strikeTime?: number;
+    shakeIntensity?: number;
+};
 
-const defaultLightningOptions: Required<Omit<LightningOptions, "from" | "to">> = {
+const defaultLightningBoltOptions: Required<LightningBoltOptions> = {
     sway: 35,
     maxFork: 3,
     forkProb: 0.9,
     generations: 5,
 };
+const defaultLightningDrawOptions: Required<LightningDrawOptions> = {
+    lightningColor: 0xffffdd,
+    findDestinationTime: 300,
+    maxGlow: 50,
+    glowDistance: 20,
+    strikeTime: 1_000,
+    shakeIntensity: 0.005,
+}
 
 export class Lightning {
     private g: Phaser.GameObjects.Graphics;
@@ -35,11 +39,11 @@ export class Lightning {
         this.strikeSound = this.scene.sound.add("lightning");
     }
 
-    createLightning(options: LightningOptions): void {
-        const optionValues = options = { ...defaultLightningOptions, ...options };
-        const segments = this.createLightningBoltSegments(optionValues);
+    addLightning(from: Pos, to: Pos, options?: { creation: LightningBoltOptions; rendering: LightningDrawOptions }): void {
+        const creationOptions = { ...defaultLightningBoltOptions, ...options?.creation };
+        
+        const segments = this.createLightningBoltSegments(from, to, creationOptions);
 
-        const { from, to } = options;
         const perp = asVector(from).subtract(asVector(to)).normalizeLeftHand().normalize();
         const radius = 100;
         const center = asVector(to).add(asVector(from).subtract(asVector(to)).normalize().scale(radius));
@@ -47,14 +51,14 @@ export class Lightning {
         // Major branch 1
         const mb1_start = segments[0].b;
         const mb1_end = center.clone().add(perp.clone().scale(radius));
-        const mb1 = this.createLightningBoltSegments({ ...optionValues, from: mb1_start, to: mb1_end });
+        const mb1 = this.createLightningBoltSegments(mb1_start, mb1_end, creationOptions);
         mb1.forEach(segment => segment.type++);
         segments.push(...mb1);
 
         // Major branch 1
         const mb2_start = segments[1].b;
         const mb2_end = center.clone().add(perp.clone().scale(-radius));
-        const mb2 = this.createLightningBoltSegments({ ...optionValues, from: mb2_start, to: mb2_end });
+        const mb2 = this.createLightningBoltSegments(mb2_start, mb2_end, creationOptions);
         mb2.forEach(segment => segment.type++);
         segments.push(...mb2);
 
@@ -63,63 +67,56 @@ export class Lightning {
         segments.sort((a, b) => distanceFromSource(a) - distanceFromSource(b));
 
         // Draw
-        this.drawLightning(segments);
+        const renderingOptions = { ...defaultLightningDrawOptions, ...options?.rendering };
+        this.drawLightning(segments, renderingOptions);
     }
 
-    private drawLightning(lightningBoltSegments: Segment[]): void {
-        const g = this.g;
+    private drawLightning(segments: Segment[], options: Required<LightningDrawOptions>): void {
+        const { findDestinationTime, glowDistance, lightningColor, maxGlow, shakeIntensity, strikeTime } = options;
         
-        g.clearAlpha();
-        g.clear();
-        g.postFX.clear();
-
-        const lightningColor = 0xffffdd;
+        this.g.clearAlpha();
+        this.g.clear();
+        this.g.postFX.clear();
 
         const drawSegment = (segment: Segment): void => {
             const width = 2 - 0.2*(segment.type);
             const alpha = 1 - 0.2*(segment.type);
-            g.lineStyle(width, lightningColor, alpha);
+            this.g.lineStyle(width, lightningColor, alpha);
             
-            g.beginPath();
-            g.moveTo(segment.a.x, segment.a.y);
-            g.lineTo(segment.b.x, segment.b.y);
-            g.strokePath();
+            this.g.beginPath();
+            this.g.moveTo(segment.a.x, segment.a.y);
+            this.g.lineTo(segment.b.x, segment.b.y);
+            this.g.strokePath();
         };
 
         const drawAllSegments = (predicate: (segment: Segment) => boolean): void => {
-            for (const segment of lightningBoltSegments.filter(predicate)) {
+            for (const segment of segments.filter(predicate)) {
                 drawSegment(segment);
             }
         }
 
-        const findDestinationTime = 300;
-        const maxGlow = 50;
-        const glowDistance = 20;
-        const strikeTime = 1_000;
-        const shakeIntensity = 0.005;
-
         let segmentsDrawnIndex = 0;
         this.scene.tweens.addCounter({
             from: 0,
-            to: lightningBoltSegments.length - 1,
+            to: segments.length - 1,
             duration: findDestinationTime,
             yoyo: false,
             repeat: 0,
             onUpdate: (tween) => {
                 const value = Math.round(tween.getValue());
                 for (let index=segmentsDrawnIndex; index<value; index++) {
-                    const segment = lightningBoltSegments[index];
+                    const segment = segments[index];
                     drawSegment(segment);
                 }
                 segmentsDrawnIndex = value;
             },
             onComplete: () => {
-                g.clear();
+                this.g.clear();
                 drawAllSegments(s => s.type === 0);
                 this.scene.cameras.main.shake(strikeTime, shakeIntensity);
                 this.strikeSound.play();
 
-                const glow = g.postFX.addGlow(lightningColor, maxGlow, undefined, undefined, undefined, glowDistance);
+                const glow = this.g.postFX.addGlow(lightningColor, maxGlow, undefined, undefined, undefined, glowDistance);
                 this.scene.tweens.addCounter({
                     from: maxGlow,
                     to: 0,
@@ -128,14 +125,14 @@ export class Lightning {
                     onUpdate: (tween) => {
                         glow.outerStrength = tween.getValue();
                     },
-                    onComplete: () => g.clear(),
+                    onComplete: () => this.g.clear(),
                 });
             }
         });
     }
 
-    private createLightningBoltSegments(options: Required<LightningOptions>): Segment[] {
-        const { from, to, sway, maxFork, forkProb, generations } = options;
+    private createLightningBoltSegments(from: Pos, to: Pos, options: Required<LightningBoltOptions>): Segment[] {
+        const { sway, maxFork, forkProb, generations } = options;
 
         console.log("createLightningBoltSegments(from:", pointToString(from), ", to:", pointToString(to), ")");
         

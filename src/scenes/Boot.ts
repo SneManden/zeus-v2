@@ -43,6 +43,6 @@ export class Boot extends Scene
         graphics.fillCircle(from.x, from.y, 3);
         graphics.fillCircle(to.x, to.y, 3);
 
-        lightning.createLightning({ from, to });
+        lightning.addLightning(from, to);
     }
 }
