@@ -1,3 +1,4 @@
+import { Lightning } from "../helpers/Lightning";
 import { SceneHelper } from "../helpers/SceneHelper";
 import { Explodable } from "../mixins/Explodable";
 import { Preloader } from "../scenes/Preloader";
@@ -42,8 +43,10 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 
 	crosshair: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 
+	lightning: Lightning;
+
 	constructor({ scene, x, y, target }: ZeusConfig) {
-        super(scene, x, y, Preloader.assets.zeus, 0);
+        super(scene, x, y, Preloader.images.zeus, 0);
 
         this.target = target ?? null;
 
@@ -67,15 +70,13 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		// this.enableCrosshair = true;
 		// this.fireTimer = 0;
 		
-		// // Crosshair
-		this.crosshair = this.scene.physics.add.sprite(this.x, this.y, Preloader.assets.crosshair);
+		// Crosshair
+		this.crosshair = this.scene.physics.add.sprite(this.x, this.y, Preloader.images.crosshair);
 		this.crosshair.body.setAllowGravity(false);
 		this.crosshair.setScale(0.5);
 
-		// Lightning effects, wooo
-		// this.lightningBitmap = this.game.add.bitmapData(200, 300);
-		// this.lightning = this.game.add.image(this.game.width/2, 20, this.lightningBitmap);
-		// this.lightning.anchor.set(0.5, 0);
+		// Lightning
+		this.lightning = new Lightning(this.scene);
 
 		// this.canTakeHit = true;
 

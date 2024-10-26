@@ -8,10 +8,10 @@ export class MainMenu extends Scene
     title: GameObjects.Text;
 
     private content = [
-        { y: 90,  image: Preloader.assets.player,      text: 'This is you. Use <Arrow keys> and <Space> for movement and throwing.' },
-        { y: 150, image: Preloader.assets.zeus,        text: 'This is Zeus. He will try to kill you.\nKill him.' },
-        { y: 210, image: Preloader.assets.crosshair,   text: 'This indicates Zeus\' lightning strike.\nAvoid it.' },
-        { y: 270, image: Preloader.assets.bull,        text: 'This is a bull. It will try to kill you.\nCan be jumped on and thrown.' },
+        { y: 90,  image: Preloader.images.player,      text: 'This is you. Use <Arrow keys> and <Space> for movement and throwing.' },
+        { y: 150, image: Preloader.images.zeus,        text: 'This is Zeus. He will try to kill you.\nKill him.' },
+        { y: 210, image: Preloader.images.crosshair,   text: 'This indicates Zeus\' lightning strike.\nAvoid it.' },
+        { y: 270, image: Preloader.images.bull,        text: 'This is a bull. It will try to kill you.\nCan be jumped on and thrown.' },
     ] as const;
 
     constructor ()
@@ -23,7 +23,7 @@ export class MainMenu extends Scene
     {
         const { w, h } = { w:Number(this.game.config.width), h:Number(this.game.config.height) };
 
-        this.background = this.add.image(w/2, h/2, Preloader.assets.background);
+        this.background = this.add.image(w/2, h/2, Preloader.images.background);
         this.background.displayWidth = w;
         this.background.displayHeight = h;
 
@@ -55,7 +55,8 @@ export class MainMenu extends Scene
         }
 
         this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).on("up", () => {
-            this.scene.start('Game');
+            this.cameras.main.fade(1_000, 0, 0, 0, undefined);
+            this.time.delayedCall(1_000, () => this.scene.start('Game'));
         });
     }
 }

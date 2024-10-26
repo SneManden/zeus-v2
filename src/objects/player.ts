@@ -35,7 +35,7 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
     target: { x: number, y: number } | null;
 
     constructor({ scene, x, y }: PlayerConfig){
-        super(scene, x, y, Preloader.assets.player, 0);
+        super(scene, x, y, Preloader.images.player, 0);
 
         this.scene.add.existing(this);
         this.scene.physics.add.existing(this);
@@ -47,13 +47,13 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
         
         this.anims.create({
             key: Animations.right, 
-            frames: this.anims.generateFrameNumbers(Preloader.assets.player, { frames: [0, 1, 2, 3] }), 
+            frames: this.anims.generateFrameNumbers(Preloader.images.player, { frames: [0, 1, 2, 3] }), 
             frameRate: 10,
             repeat: -1,
         });
         this.anims.create({
             key: Animations.left, 
-            frames: this.anims.generateFrameNumbers(Preloader.assets.player, { frames: [4, 5, 6, 7] }), 
+            frames: this.anims.generateFrameNumbers(Preloader.images.player, { frames: [4, 5, 6, 7] }), 
             frameRate: 10,
             repeat: -1,
         });
@@ -62,7 +62,7 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
         this.cursors = this.scene.input.keyboard!.createCursorKeys();
 
         this.lifeIcons = this.scene.add.group({
-            key: Preloader.assets.player,
+            key: Preloader.images.player,
             frameQuantity: this.lives,
             frame: 0,
             setXY: {

@@ -21,7 +21,7 @@ export class Game extends Scene {
 
         const { w, h } = { w:Number(this.game.config.width), h:Number(this.game.config.height) };
 
-        this.background = this.add.image(w/2, h/2, Preloader.assets.background);
+        this.background = this.add.image(w/2, h/2, Preloader.images.background);
         this.background.displayWidth = w;
         this.background.displayHeight = h;
 

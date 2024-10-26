@@ -15,19 +15,19 @@ export class Bull extends Explodable(Phaser.Physics.Arcade.Sprite) {
     } as const;
 
     constructor(scene: Scene, x: number, y: number) {
-        super(scene, x, y, Preloader.assets.bull);
+        super(scene, x, y, Preloader.images.bull);
 
         this.name = `Bull ${Phaser.Math.RND.integer()}`;
 
         this.anims.create({
             key: "right", 
-            frames: this.anims.generateFrameNumbers(Preloader.assets.bull, { frames: [0, 1] }), 
+            frames: this.anims.generateFrameNumbers(Preloader.images.bull, { frames: [0, 1] }), 
             frameRate: 10,
             repeat: -1,
         });
         this.anims.create({
             key: "left", 
-            frames: this.anims.generateFrameNumbers(Preloader.assets.bull, { frames: [3, 4] }), 
+            frames: this.anims.generateFrameNumbers(Preloader.images.bull, { frames: [3, 4] }), 
             frameRate: 10,
             repeat: -1,
         });
@@ -92,7 +92,7 @@ export class Bulls extends Phaser.Physics.Arcade.Group {
 
         this.createMultiple({
             quantity: 5,
-            key: Preloader.assets.bull,
+            key: Preloader.images.bull,
             active: false,
             visible: false,
             classType: Bull,
