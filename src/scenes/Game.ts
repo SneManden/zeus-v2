@@ -19,6 +19,10 @@ export class Game extends Scene {
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0x00ff00);
 
+        const backgroundMusic = this.sound.add(Preloader.sounds.backgroundGame, { loop: true });
+        this.events.once("shutdown", () => backgroundMusic.stop());
+        backgroundMusic.play();
+
         const { w, h } = { w:Number(this.game.config.width), h:Number(this.game.config.height) };
 
         this.background = this.add.image(w/2, h/2, Preloader.images.background);

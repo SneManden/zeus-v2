@@ -36,6 +36,9 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
 
     target: { x: number, y: number } | null;
 
+    private jumpSound: Phaser.Sound.NoAudioSound | Phaser.Sound.HTML5AudioSound | Phaser.Sound.WebAudioSound;
+    private throwSound: Phaser.Sound.NoAudioSound | Phaser.Sound.HTML5AudioSound | Phaser.Sound.WebAudioSound;
+
     constructor({ scene, x, y }: PlayerConfig){
         super(scene, x, y, Preloader.images.player, 0);
 
@@ -59,6 +62,9 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
             repeat: -1,
         });
         this.anims.play(Animations.left);
+
+        this.jumpSound = this.scene.sound.add(Preloader.sounds.jump);
+        this.throwSound = this.scene.sound.add(Preloader.sounds.throw);
 
         this.cursors = this.scene.input.keyboard!.createCursorKeys();
 
@@ -97,6 +103,8 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
             // Cannot throw bull when going up
             return;
         }
+
+        this.throwSound.play();
 
         const throwPower = { min: -400, max: -600 };
         const accurracy = 100; // if target dir is X, then aim will be in range [X-accurracy; X+accurracy]
@@ -146,6 +154,7 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
 
         // Jumping
         if (up.isDown && this.body.touching.down) {
+            this.jumpSound.play();
             this.setVelocityY(-this.parameters.jumpPower);
         }
 	}

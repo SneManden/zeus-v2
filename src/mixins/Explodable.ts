@@ -1,3 +1,4 @@
+import { Preloader } from "../scenes/Preloader";
 import { GConstructor } from "./GConstructor";
 
 type MinMax = { min: number; max: number };
@@ -12,6 +13,8 @@ export function Explodable<TBase extends GConstructor<Phaser.Physics.Arcade.Spri
 
         // satisfies ExplodeOptions; // :( esbuild fails to understand...
         defaultConfig: ExplodeOptions & ExplodeOptionsX & ExplodeOptionsY = { x: { min: -500, max: 500 }, y: { min: -600, max: -1200 } };
+
+        explodingSound = this.scene.sound.add(Preloader.sounds.explosion);
 
         explode(config?: ExplodeOptions) {
             const { x, y, frame, rotate } = { ...this.defaultConfig, ...config };
@@ -32,6 +35,8 @@ export function Explodable<TBase extends GConstructor<Phaser.Physics.Arcade.Spri
             const vy = typeof y === "number" ? y : Phaser.Math.RND.between(y.min, y.max);
 
             this.setVelocity(vx, vy);
+
+            this.explodingSound.play();
         }
     };
 }

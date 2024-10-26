@@ -12,6 +12,10 @@ export class Preloader extends Scene
 
     static sounds = {
         lightning: "Lightning",
+        explosion: "Explosion",
+        jump: "Jump",
+        throw: "Throw",
+        backgroundGame: "BackgroundGame",
     } as const;
 
     constructor ()
@@ -55,7 +59,12 @@ export class Preloader extends Scene
 		this.load.image("human", "human.png");
 
         // Sounds
+        this.load.setPath('assets/sounds');
         this.load.audio(Preloader.sounds.lightning, 'lightning-strike.ogg');
+        this.load.audio(Preloader.sounds.explosion, 'explosion.ogg');
+        this.load.audio(Preloader.sounds.jump, 'jump.ogg');
+        this.load.audio(Preloader.sounds.throw, 'throw.ogg');
+        this.load.audio(Preloader.sounds.backgroundGame, 'thunderous_charge.mp3');
     }
 
     create ()
