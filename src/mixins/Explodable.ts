@@ -5,7 +5,7 @@ type MinMax = { min: number; max: number };
 
 type ExplodeOptionsX = { x: number | MinMax };
 type ExplodeOptionsY = { y: number | MinMax };
-type ExplodeOptions = Partial<ExplodeOptionsX & ExplodeOptionsY> & { frame?: number, rotate?: boolean };
+type ExplodeOptions = Partial<ExplodeOptionsX & ExplodeOptionsY> & { frame?: number, rotate?: boolean, angularVelocity?: number };
 
 export function Explodable<TBase extends GConstructor<Phaser.Physics.Arcade.Sprite>>(Base: TBase) {
     return class extends Base {
@@ -17,7 +17,7 @@ export function Explodable<TBase extends GConstructor<Phaser.Physics.Arcade.Spri
         explodingSound = this.scene.sound.add(Preloader.sounds.explosion);
 
         explode(config?: ExplodeOptions) {
-            const { x, y, frame, rotate } = { ...this.defaultConfig, ...config };
+            const { x, y, frame, rotate, angularVelocity } = { ...this.defaultConfig, ...config };
 
             this.exploding = true;
 
@@ -27,8 +27,8 @@ export function Explodable<TBase extends GConstructor<Phaser.Physics.Arcade.Spri
                 this.setFrame(frame);
             }
 
-            if (rotate === true) {
-                this.setAngularVelocity(150);
+            if (rotate === true || angularVelocity !== undefined) {
+                this.setAngularVelocity(angularVelocity ?? 150);
             }
 
             const vx = typeof x === "number" ? x : Phaser.Math.RND.between(x.min, x.max);

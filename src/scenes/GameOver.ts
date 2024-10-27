@@ -1,15 +1,10 @@
 import { Scene } from 'phaser';
 import { SceneHelper } from '../helpers/SceneHelper';
+import { Preloader } from './Preloader';
 
 export class GameOver extends Scene
 {
-    camera: Phaser.Cameras.Scene2D.Camera;
-    background: Phaser.GameObjects.Image;
-    gameover_text : Phaser.GameObjects.Text;
-
-    canContinue = false;
-
-    space: Phaser.Input.Keyboard.Key | null;
+    private canContinue = false;
 
     constructor ()
     {
@@ -20,26 +15,71 @@ export class GameOver extends Scene
     {
         const { width, height } = SceneHelper.GetScreenSize(this);
 
-        this.camera = this.cameras.main
-        this.camera.setBackgroundColor(0xff0000);
+        const camera = this.cameras.main;
 
-        this.gameover_text = this.add.text(width/2, height/2, 'Game Over', {
-            fontFamily: 'Arial Black', fontSize: 64, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 8,
-            align: 'center'
+        // Background
+        const back = this.add.image(width / 2, height / 2, Preloader.images.background);
+        back.displayWidth = width;
+        back.displayHeight = height;
+
+        // Add Zeus flying towards screen
+        this.addZeusFlyingTowardsScreen(width, height);
+
+        // Exit / go to main menu
+        this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).on("up", () => {
+            if (this.canContinue) {
+                camera.fade(1_000, 0, 0, 0, undefined);
+                this.time.delayedCall(1_000, () => this.scene.start('GameOver'));
+            }
         });
-        this.gameover_text.setOrigin(0.5);
-
-        this.space = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE) ?? null;
-
-        this.time.delayedCall(5_000, () => this.canContinue = true);
     }
 
-    update(time: number, delta: number): void {
-        super.update(time, delta);
+    private addZeusFlyingTowardsScreen(width: number, height: number): void {
+        const flyingTime = 4_000;
+        
+        const zeus = this.add.image(width / 2, 0, Preloader.images.zeus);
+        zeus.setScale(0.1, 0.1);
+        this.tweens.chain({
+            targets: zeus,
+            tweens: [
+                {
+                    y: height / 2,
+                    scale: 3,
+                    duration: flyingTime,
+                    ease: "Expo.easeIn",
+                },
+                {
+                    y: 0,
+                    scale: 10,
+                    alpha: 0,
+                    duration: 500,
+                    ease: "Expo.easeOut",
+                    onComplete: () => {
+                        zeus.destroy();
+                        this.canContinue = true;
+                        this.displayGameOver(width/2, height/2);
+                    },
+                }
+            ],
+        });
+        const zeusLaughSound = this.sound.add(Preloader.sounds.evilLaugh, { volume: 0.2 });
+        zeusLaughSound.play();
+        this.tweens.add({
+            targets: zeusLaughSound,
+            volume: 1,
+            duration: flyingTime,
+            ease: "Expo.easeIn",
+        });
+    }
 
-        if (this.canContinue && this.space?.isDown) {
-            this.scene.start("MainMenu");
-        }
+    private displayGameOver(x: number, y: number): void {
+        const commonTextConfig: Phaser.Types.GameObjects.Text.TextStyle = {
+            fontFamily: 'Droid Sans',
+            color: '#ffffff',
+            stroke: '#000000',
+            align: 'center'
+        };
+
+        this.add.text(x, y, 'Game Over', { ...commonTextConfig, fontSize: 30, strokeThickness: 8 }).setOrigin(0.5);
     }
 }

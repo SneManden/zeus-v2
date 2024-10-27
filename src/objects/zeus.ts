@@ -67,11 +67,11 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		this.crosshair = this.scene.physics.add.sprite(this.x, this.y, Preloader.images.crosshair);
 		this.crosshair.body.setAllowGravity(false);
 		this.crosshair.setScale(0.5);
-		this.crosshair.setAlpha(0);
+		this.crosshair.setAlpha(0.5);
 
 		// Shadow
 		const { width, height } = SceneHelper.GetScreenSize(scene);
-		this.shadow = this.scene.add.rectangle(width/2, height/2, width, height, 0x000000);
+		this.shadow = this.scene.add.rectangle(width/2, height/2, width + 100, height + 100, 0x000000);
 		this.shadow.setAlpha(0);
 
 		// Lightning
