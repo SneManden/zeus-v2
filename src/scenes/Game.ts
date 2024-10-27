@@ -39,9 +39,9 @@ export class Game extends Scene {
         this.player.target = this.zeus;
 
         // Bulls
-        const bulls = new Bulls(this);
+        const bulls = new Bulls(this, 5);
         this.time.addEvent({
-            delay: 5000,
+            delay: 4_000,
             callback: () => {
                 bulls.spawnBull();
             },

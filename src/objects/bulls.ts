@@ -66,12 +66,12 @@ export class Bull extends Explodable(Phaser.Physics.Arcade.Sprite) {
             return;
         }
 
-        if (this.body.touching.down) {
-            this.wakeUp();
-        }
-
         if (this.exploding || this.paralyzed) {
             return;
+        }
+
+        if (this.body.touching.down) {
+            this.wakeUp();
         }
 
         const vx = this.body.velocity.x;
@@ -87,11 +87,11 @@ export class Bull extends Explodable(Phaser.Physics.Arcade.Sprite) {
 }
 
 export class Bulls extends Phaser.Physics.Arcade.Group {
-    constructor(scene: Scene) {
+    constructor(scene: Scene, quantity = 5) {
         super(scene.physics.world, scene);
 
         this.createMultiple({
-            quantity: 5,
+            quantity,
             key: Preloader.images.bull,
             active: false,
             visible: false,
