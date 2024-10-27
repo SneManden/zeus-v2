@@ -96,7 +96,7 @@ export class Bulls extends Phaser.Physics.Arcade.Group {
             active: false,
             visible: false,
             classType: Bull,
-        })
+        });
     }
 
 	spawnBull() {

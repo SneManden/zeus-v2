@@ -1,4 +1,5 @@
 import { Preloader } from "../scenes/Preloader";
+import { SceneHelper } from "./SceneHelper";
 import { Pos, Segment, asVector, createSegment, pointAt, segmentAsVector } from "./utils";
 
 type LightningBoltOptions = {
@@ -15,32 +16,56 @@ type LightningDrawOptions = {
     strikeTime?: number;
     shakeIntensity?: number;
 };
+type shadowOptions = {
+    enabled?: boolean;
+    leadupTime?: number;
+    shadowAlpha?: number;
+    dailightRecoverTime?: number;
+};
+type LightningOptions = {
+    creation?: LightningBoltOptions;
+    rendering?: LightningDrawOptions;
+    shadow?: shadowOptions;
+};
 
-const defaultLightningBoltOptions: Required<LightningBoltOptions> = {
+export const defaultLightningBoltOptions: Required<LightningBoltOptions> = {
     sway: 35,
     maxFork: 3,
     forkProb: 0.9,
     generations: 5,
 };
-const defaultLightningDrawOptions: Required<LightningDrawOptions> = {
+export const defaultLightningDrawOptions: Required<LightningDrawOptions> = {
     lightningColor: 0xffffdd,
     findDestinationTime: 300,
     maxGlow: 50,
     glowDistance: 20,
     strikeTime: 1_000,
     shakeIntensity: 0.005,
-}
+};
+export const defaultShadowOptions: Required<shadowOptions> = {
+    enabled: true,
+    leadupTime: 500,
+    shadowAlpha: 0.8,
+    dailightRecoverTime: 500,
+};
 
 export class Lightning {
     private g: Phaser.GameObjects.Graphics;
     private strikeSound: Phaser.Sound.NoAudioSound | Phaser.Sound.HTML5AudioSound | Phaser.Sound.WebAudioSound;
+	
+    shadow: Phaser.GameObjects.Rectangle;
 
     constructor(private scene: Phaser.Scene) {
+		const { width, height } = SceneHelper.GetScreenSize(scene);
+		this.shadow = this.scene.add.rectangle(width/2, height/2, width + 100, height + 100, 0x000000);
+		this.shadow.setAlpha(0);
+
         this.g = this.scene.add.graphics();
+        
         this.strikeSound = this.scene.sound.add(Preloader.sounds.lightning);
     }
 
-    addLightning(from: Pos, to: Pos, options?: { creation: LightningBoltOptions; rendering: LightningDrawOptions }, onStrike?: () => void, onComplete?: () => void): void {
+    addLightning(from: Pos, to: Pos, options?: LightningOptions, onStrike?: () => void, onComplete?: () => void): void {
         // Create lightning segments
         const creationOptions = { ...defaultLightningBoltOptions, ...options?.creation };
         const segments = this.createLightningBolts(from, to, creationOptions);
@@ -49,9 +74,31 @@ export class Lightning {
         const distanceFromSource = (segment: Segment): number => asVector(segment.a).distance(from);
         segments.sort((a, b) => distanceFromSource(a) - distanceFromSource(b));
 
-        // Draw
+        const shadowOptions = { ...defaultShadowOptions, ...options?.shadow };
         const renderingOptions = { ...defaultLightningDrawOptions, ...options?.rendering };
-        this.drawLightning(segments, renderingOptions, onStrike, onComplete);
+
+        const whenLightningComplete = () => {
+            onComplete?.();
+
+            if (shadowOptions.enabled){
+                this.scene.tweens.add({
+                    targets: this.shadow,
+                    alpha: 0,
+                    duration: shadowOptions.dailightRecoverTime,
+                });
+            }
+        }
+
+        if (shadowOptions.enabled) {
+            this.scene.tweens.add({
+                targets: this.shadow,
+                alpha: shadowOptions.shadowAlpha,
+                duration: shadowOptions.leadupTime,
+                onComplete: () => this.drawLightning(segments, renderingOptions, onStrike, whenLightningComplete),
+            });
+        } else {
+            this.drawLightning(segments, renderingOptions, onStrike, whenLightningComplete);
+        }
     }
 
     private drawLightning(segments: Segment[], options: Required<LightningDrawOptions>, onStrike?: () => void, onComplete?: () => void): void {

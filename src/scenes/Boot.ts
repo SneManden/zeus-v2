@@ -14,13 +14,13 @@ export class Boot extends Scene
     {
         this.load.image(Preloader.images.background, 'assets/back1.png');
 
-        this.load.audio(Preloader.sounds.evilLaugh, 'assets/sounds/evil-laugh.mp3');
-		this.load.spritesheet(Preloader.images.zeus, "assets/zeus.png", { frameWidth: 64, frameHeight: 64 });
+        // this.load.audio(Preloader.sounds.evilLaugh, 'assets/sounds/evil-laugh.mp3');
+		// this.load.spritesheet(Preloader.images.zeus, "assets/zeus.png", { frameWidth: 64, frameHeight: 64 });
     }
 
     create ()
     {
-        this.scene.start('GameOver');
+        this.scene.start('Preloader');
 
         // this.debugLightning();
     }

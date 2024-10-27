@@ -1,6 +1,7 @@
 import { Scene } from 'phaser';
 import { SceneHelper } from '../helpers/SceneHelper';
 import { Preloader } from './Preloader';
+import { Lightning, defaultShadowOptions } from '../helpers/Lightning';
 
 export class GameOver extends Scene
 {
@@ -36,6 +37,7 @@ export class GameOver extends Scene
 
     private addZeusFlyingTowardsScreen(width: number, height: number): void {
         const flyingTime = 4_000;
+
         
         const zeus = this.add.image(width / 2, 0, Preloader.images.zeus);
         zeus.setScale(0.1, 0.1);
@@ -54,6 +56,9 @@ export class GameOver extends Scene
                     alpha: 0,
                     duration: 500,
                     ease: "Expo.easeOut",
+                    onStart: () => {
+                        this.startThunder(width, height);
+                    },
                     onComplete: () => {
                         zeus.destroy();
                         this.canContinue = true;
@@ -70,6 +75,25 @@ export class GameOver extends Scene
             duration: flyingTime,
             ease: "Expo.easeIn",
         });
+    }
+
+    private startThunder(width: number, height: number): void {
+        const lightning = new Lightning(this);
+
+        lightning.shadow.setAlpha(defaultShadowOptions.shadowAlpha);
+
+        const strike = () => {
+            const sourceX = Phaser.Math.RND.between(50, width - 50);
+            const strikeX = sourceX + Phaser.Math.RND.between(-50, 50);
+            lightning.addLightning({ x: sourceX, y: 0 }, { x: strikeX, y: height }, { shadow: { enabled: false } }, undefined, onComplete);
+        };
+
+        const onComplete = () => {
+            const delay = Phaser.Math.Between(1_000, 5_000);
+            this.time.delayedCall(delay, () => strike());
+        };
+        
+        strike();
     }
 
     private displayGameOver(x: number, y: number): void {

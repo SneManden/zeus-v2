@@ -44,7 +44,6 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 
 	crosshair: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 
-	shadow: Phaser.GameObjects.Rectangle;
 	lightning: Lightning;
 	preparingStrike = false;
 	lightningStriking = false;
@@ -68,11 +67,6 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		this.crosshair.body.setAllowGravity(false);
 		this.crosshair.setScale(0.5);
 		this.crosshair.setAlpha(0.5);
-
-		// Shadow
-		const { width, height } = SceneHelper.GetScreenSize(scene);
-		this.shadow = this.scene.add.rectangle(width/2, height/2, width + 100, height + 100, 0x000000);
-		this.shadow.setAlpha(0);
 
 		// Lightning
 		this.lightning = new Lightning(this.scene);
@@ -144,31 +138,16 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 			const { x: vx, y: vy } = distanceVector.normalize().scale(100);
 			this.crosshair.setVelocity(vx, vy);
 		} else if (this.canFire) {
-			this.prepareZap();
+			this.zap();
 		}
 	}
 
-	prepareZap(): void {
-		if (this.preparingStrike) {
+	zap(): void {
+		if (!this.canFire || this.preparingStrike) {
 			return;
 		}
 		
 		this.preparingStrike = true;
-		
-		this.scene.tweens.add({
-			targets: this.shadow,
-			alpha: { from: 0, to: 0.8 },
-			duration: 500,
-		});
-		
-		this.scene.time.delayedCall(500, () => this.zap());
-	}
-	
-	zap(): void {
-		if (!this.canFire) {
-			return;
-		}
-		
 		this.canFire = false;
 		this.crosshair.setFrame(1);
 
@@ -179,11 +158,6 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		const onComplete = () => {
 			this.lightningStriking = false;
 			this.crosshair.setFrame(0);
-			this.scene.tweens.add({
-				targets: this.shadow,
-				alpha: 0,
-				duration: 500,
-			});
 		};
 		
 		this.lightning.addLightning(this, this.crosshair, undefined, onStrike, onComplete);
