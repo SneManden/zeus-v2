@@ -24,8 +24,8 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
     parameters = {
         hSpeed: 250,
         jumpPower: 500,
-        maxLives: 1,
-		deadDebounce: 750,
+        maxLives: 3,
+		deadDebounce: 1_500,
     } as const;
 
     dead = false;
@@ -107,10 +107,10 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
         this.throwSound.play();
 
         const throwPower = { min: -400, max: -600 };
-        const accurracy = 100; // if target dir is X, then aim will be in range [X-accurracy; X+accurracy]
 
-        const xDirection = this.target ? this.target.x - this.x : this.x;
-        bull.explode({ x: { min: xDirection - accurracy, max: xDirection + accurracy }, y: throwPower, rotate: true });
+        const xDirection = 5 * (bull.x - this.x);
+        bull.explode({ x: xDirection, y: throwPower, rotate: true });
+
         this.setFrame(9);
     }
 
@@ -180,6 +180,20 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
         const { width, height } = SceneHelper.GetScreenSize(this.scene);
         this.setPosition(width / 2, height / 2);
 
+        // TODO: tint while cannot being hit
+        // this.tintFill = true;
+        // this.scene.tweens.add({
+        //     targets: this,
+        //     yoyo: true,
+        //     tintTopLeft: { from: 0x000000, to: 0xffffff },
+        //     repeat: -1,
+        //     duration: 100,
+        //     totalDuration: this.parameters.deadDebounce,
+        //     onComplete: () => {
+        //         this.tintFill = false;
+        //     }
+        // });
+        
         this.scene.time.delayedCall(this.parameters.deadDebounce, () => this.canTakeHit = true);
     }
 
