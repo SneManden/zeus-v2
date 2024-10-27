@@ -16,6 +16,7 @@ export class Preloader extends Scene
         jump: "Jump",
         throw: "Throw",
         backgroundGame: "BackgroundGame",
+        mainMenu: "MainMenu",
     } as const;
 
     constructor ()
@@ -65,6 +66,7 @@ export class Preloader extends Scene
         this.load.audio(Preloader.sounds.jump, 'jump.ogg');
         this.load.audio(Preloader.sounds.throw, 'throw.ogg');
         this.load.audio(Preloader.sounds.backgroundGame, 'thunderous_charge.mp3');
+        this.load.audio(Preloader.sounds.mainMenu, "thunderstriker.mp3")
     }
 
     create ()

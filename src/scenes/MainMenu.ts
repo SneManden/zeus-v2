@@ -21,6 +21,10 @@ export class MainMenu extends Scene
 
     create ()
     {
+        const backgroundMusic = this.sound.add(Preloader.sounds.mainMenu, { loop: true });
+        this.events.once("shutdown", () => backgroundMusic.stop());
+        backgroundMusic.play();
+
         const { w, h } = { w:Number(this.game.config.width), h:Number(this.game.config.height) };
 
         this.background = this.add.image(w/2, h/2, Preloader.images.background);
