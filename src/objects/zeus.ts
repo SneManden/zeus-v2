@@ -44,7 +44,9 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 
 	crosshair: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 
+	shadow: Phaser.GameObjects.Rectangle;
 	lightning: Lightning;
+	preparingStrike = false;
 	lightningStriking = false;
 
 	constructor({ scene, x, y, player }: ZeusConfig) {
@@ -66,6 +68,11 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		this.crosshair.body.setAllowGravity(false);
 		this.crosshair.setScale(0.5);
 		this.crosshair.setAlpha(0);
+
+		// Shadow
+		const { width, height } = SceneHelper.GetScreenSize(scene);
+		this.shadow = this.scene.add.rectangle(width/2, height/2, width, height, 0x000000);
+		this.shadow.setAlpha(0);
 
 		// Lightning
 		this.lightning = new Lightning(this.scene);
@@ -128,7 +135,7 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		
 		this.crosshair.setFrame(0);
 
-		if (!this.canFire) {
+		if (this.preparingStrike || this.lightningStriking) {
 			this.crosshair.setVelocity(0, 0);
 			return;
 		}
@@ -137,10 +144,26 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 			const { x: vx, y: vy } = distanceVector.normalize().scale(100);
 			this.crosshair.setVelocity(vx, vy);
 		} else if (this.canFire) {
-			this.scene.time.delayedCall(500, () => this.zap());
+			this.prepareZap();
 		}
 	}
 
+	prepareZap(): void {
+		if (this.preparingStrike) {
+			return;
+		}
+		
+		this.preparingStrike = true;
+		
+		this.scene.tweens.add({
+			targets: this.shadow,
+			alpha: { from: 0, to: 0.8 },
+			duration: 500,
+		});
+		
+		this.scene.time.delayedCall(500, () => this.zap());
+	}
+	
 	zap(): void {
 		if (!this.canFire) {
 			return;
@@ -149,10 +172,18 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		this.canFire = false;
 		this.crosshair.setFrame(1);
 
-		const onStrike = () => this.lightningStriking = true;
+		const onStrike = () => {
+			this.preparingStrike = false;
+			this.lightningStriking = true;
+		};
 		const onComplete = () => {
 			this.lightningStriking = false;
-			this.crosshair.setFrame(0)
+			this.crosshair.setFrame(0);
+			this.scene.tweens.add({
+				targets: this.shadow,
+				alpha: 0,
+				duration: 500,
+			});
 		};
 		
 		this.lightning.addLightning(this, this.crosshair, undefined, onStrike, onComplete);
@@ -164,7 +195,7 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		let horizontalDistance = target.x - this.x;
 		let precision = 10;
 
-		if (!this.canFire) {
+		if (this.preparingStrike || this.lightningStriking) {
 			this.setVelocityX(0);
 			return;
 		}

@@ -82,6 +82,8 @@ export class Lightning {
             onStrike?.();
             this.g.clear();
             drawAllSegments(s => s.type === 0);
+            const lightningColorColor = Phaser.Display.Color.ValueToColor(lightningColor);
+            this.scene.cameras.main.flash(250, lightningColorColor.red, lightningColorColor.green, lightningColorColor.blue);
             this.scene.cameras.main.shake(strikeTime, shakeIntensity);
             this.strikeSound.play();
             const glow = this.g.postFX.addGlow(lightningColor, maxGlow, undefined, undefined, undefined, glowDistance);
