@@ -52,6 +52,8 @@ export class Game extends Scene {
         this.physics.add.collider(this.player, statics, undefined, (oPlayer, _) => !(oPlayer as Player).exploding);
         this.physics.add.collider(bulls, statics, undefined, (oBull, _) => !(oBull as Bull).exploding);
 
+        const bullCanCollide = (bull: Bull) => bull.active && !bull.paralyzed;
+        const playerCanCollideBull = () => this.player.canTakeHit && !this.player.exploding;
         this.physics.add.collider(
             this.player,
             bulls,
@@ -68,9 +70,6 @@ export class Game extends Scene {
                 }
             },
             (_, oBull) => bullCanCollide(oBull as Bull) && playerCanCollideBull());
-        
-        const bullCanCollide = (bull: Bull) => bull.active && !bull.paralyzed;
-        const playerCanCollideBull = () => this.player.canTakeHit && !this.player.exploding;
 
         this.physics.add.overlap(
             this.player,
@@ -84,7 +83,6 @@ export class Game extends Scene {
             bulls,
             (_, oBull) => {
                 const bull = oBull as Bull;
-
                 zeusTakeDamage.active = false;
                 this.zeus.bullHit(Math.sqrt(bull.body.velocity.length()), () => zeusTakeDamage.active = true);
             },
@@ -93,15 +91,22 @@ export class Game extends Scene {
         this.physics.add.overlap(
             this.player,
             this.zeus.crosshair,
-            _ => this.player.explode(),
-            _ => this.zeus.lightningStriking && this.player.canTakeHit,
+            _ => this.zeus.zap(),
+            _ => !this.zeus.lightningStriking && !this.zeus.preparingStrike
         );
 
         this.physics.add.overlap(
-            this.zeus.crosshair,
+            this.player,
+            this.zeus.lightning.collisionGroup,
+            _ => this.player.explode(),
+            _ => !this.player.exploding
+        );
+
+        this.physics.add.overlap(
             bulls,
-            (_, oBull) => (oBull as Bull).explode(),
-            _ => this.zeus.lightningStriking
+            this.zeus.lightning.collisionGroup,
+            (oBull, _) => (oBull as Bull).explode(),
+            (oBull, _) => !(oBull as Bull).exploding
         );
     }
 }

@@ -26,6 +26,7 @@ type LightningOptions = {
     creation?: LightningBoltOptions;
     rendering?: LightningDrawOptions;
     shadow?: shadowOptions;
+    setCollisionGroup?: boolean;
 };
 
 export const defaultLightningBoltOptions: Required<LightningBoltOptions> = {
@@ -55,6 +56,9 @@ export class Lightning {
 	
     shadow: Phaser.GameObjects.Rectangle;
 
+    // Used for collision detection
+    collisionGroup: Phaser.Physics.Arcade.Group;
+
     constructor(private scene: Phaser.Scene) {
 		const { width, height } = SceneHelper.GetScreenSize(scene);
 		this.shadow = this.scene.add.rectangle(width/2, height/2, width + 100, height + 100, 0x000000);
@@ -63,6 +67,8 @@ export class Lightning {
         this.g = this.scene.add.graphics();
         
         this.strikeSound = this.scene.sound.add(Preloader.sounds.lightning);
+
+        this.collisionGroup = new Phaser.Physics.Arcade.Group(scene.physics.world, scene, { allowGravity: false });
     }
 
     addLightning(from: Pos, to: Pos, options?: LightningOptions, onStrike?: () => void, onComplete?: () => void): void {
@@ -77,8 +83,18 @@ export class Lightning {
         const shadowOptions = { ...defaultShadowOptions, ...options?.shadow };
         const renderingOptions = { ...defaultLightningDrawOptions, ...options?.rendering };
 
-        const whenLightningComplete = () => {
+        const strike = () => {
+            onStrike?.();
+
+            if (options?.setCollisionGroup) {
+                this.createCollisionObject(segments.filter(s => s.type === 0));
+            }
+        }
+        
+        const complete = () => {
             onComplete?.();
+
+            this.clearCollisionObject();
 
             if (shadowOptions.enabled){
                 this.scene.tweens.add({
@@ -87,17 +103,17 @@ export class Lightning {
                     duration: shadowOptions.dailightRecoverTime,
                 });
             }
-        }
+        };
 
         if (shadowOptions.enabled) {
             this.scene.tweens.add({
                 targets: this.shadow,
                 alpha: shadowOptions.shadowAlpha,
                 duration: shadowOptions.leadupTime,
-                onComplete: () => this.drawLightning(segments, renderingOptions, onStrike, whenLightningComplete),
+                onComplete: () => this.drawLightning(segments, renderingOptions, strike, complete),
             });
         } else {
-            this.drawLightning(segments, renderingOptions, onStrike, whenLightningComplete);
+            this.drawLightning(segments, renderingOptions, strike, complete);
         }
     }
 
@@ -119,16 +135,15 @@ export class Lightning {
             this.g.strokePath();
         };
 
-        const drawAllSegments = (predicate: (segment: Segment) => boolean): void => {
-            for (const segment of segments.filter(predicate)) {
-                drawSegment(segment);
-            }
-        }
-
         const lightningStrike = () => {
             onStrike?.();
             this.g.clear();
-            drawAllSegments(s => s.type === 0);
+
+            const mainBoltSegments = segments.filter(s => s.type === 0);
+            for (const segment of mainBoltSegments) {
+                drawSegment(segment);
+            }
+
             const lightningColorColor = Phaser.Display.Color.ValueToColor(lightningColor);
             this.scene.cameras.main.flash(250, lightningColorColor.red, lightningColorColor.green, lightningColorColor.blue);
             this.scene.cameras.main.shake(strikeTime, shakeIntensity);
@@ -164,6 +179,18 @@ export class Lightning {
             },
             onComplete: () => lightningStrike(),
         });
+    }
+
+    private clearCollisionObject(): void {
+        this.collisionGroup.clear(true, true);
+    }
+
+    private createCollisionObject(segments: Segment[]): void {
+        this.collisionGroup.clear(true, true);
+
+        const points = segments.reduce((pts, segment) => [...pts, segment.b], [segments[0].a]);
+        const circles = points.map(p => new Phaser.GameObjects.Ellipse(this.scene, p.x, p.y, 5, 5, 0x00ffff));
+        this.collisionGroup.addMultiple(circles, true);
     }
 
     private createLightningBolts(from: Pos, to: Pos, options: Required<LightningBoltOptions>): Segment[] {
