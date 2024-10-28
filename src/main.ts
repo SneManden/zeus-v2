@@ -23,11 +23,6 @@ const config: Types.Core.GameConfig = {
             gravity: { x: 0, y: 1000 },
             debug: true,
         },
-        matter: {
-            enabled: true,
-            debug: true,
-            gravity: { x: 0, y: 0 },
-        }
     },
     scene: [
         Boot,
