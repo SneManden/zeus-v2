@@ -79,12 +79,16 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
             return;
         }
 
-        if (this.player) {
+        if (this.player && this.player.canTakeHit && !this.player.exploding) {
             this.follow(this.player);
         }
 		
-		if (this.player) {
+		if (this.player && this.player.canTakeHit && !this.player.exploding) {
+			this.crosshair.setAlpha(0.5);
 			this.aim(this.player);
+		} else {
+			this.crosshair.setAlpha(0);
+			this.crosshair.setVelocity(0, 0);
 		}
 	}
 
@@ -137,7 +141,7 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 	}
 
 	zap(): void {
-		if (!this.canFire || this.preparingStrike) {
+		if (!this.canFire || this.preparingStrike || this.dead) {
 			return;
 		}
 		

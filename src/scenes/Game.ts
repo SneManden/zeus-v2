@@ -58,7 +58,7 @@ export class Game extends Scene {
             this.player,
             bulls,
             (_, oBull) => {
-                const bull = oBull as Bull;
+                const bull = oBull as Bull; // Fix wrong type, is really Bull
 
                 const explodeVx = 2 * bull.body.velocity.x;
                 
@@ -66,7 +66,7 @@ export class Game extends Scene {
                     this.player.explode({ x: explodeVx, y: -this.player.parameters.jumpPower, frame: 8, rotate: true });
                     bull.setVelocityX(-Math.sign(explodeVx) * bull.parameters.hSpeed.max);
                 } else {
-                    bull.paralyze(); // Fix wrong type, is really Bull
+                    bull.paralyze();
                 }
             },
             (_, oBull) => bullCanCollide(oBull as Bull) && playerCanCollideBull());
@@ -92,14 +92,14 @@ export class Game extends Scene {
             this.player,
             this.zeus.crosshair,
             _ => this.zeus.zap(),
-            _ => !this.zeus.lightningStriking && !this.zeus.preparingStrike
+            _ => !this.zeus.lightningStriking && !this.zeus.preparingStrike && this.player.canTakeHit
         );
 
         this.physics.add.overlap(
             this.player,
             this.zeus.lightning.collisionGroup,
             _ => this.player.explode(),
-            _ => !this.player.exploding
+            _ => !this.player.exploding && this.player.canTakeHit
         );
 
         this.physics.add.overlap(

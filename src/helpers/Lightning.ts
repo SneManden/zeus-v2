@@ -189,7 +189,10 @@ export class Lightning {
         this.collisionGroup.clear(true, true);
 
         const points = segments.reduce((pts, segment) => [...pts, segment.b], [segments[0].a]);
-        const circles = points.map(p => new Phaser.GameObjects.Ellipse(this.scene, p.x, p.y, 5, 5, 0x00ffff));
+        const circles = points.map((p, index) => {
+            const size = index === points.length - 1 ? 50 : 5;
+            return new Phaser.GameObjects.Ellipse(this.scene, p.x, p.y, size, size, 0x00ffff);
+        });
         this.collisionGroup.addMultiple(circles, true);
     }
 

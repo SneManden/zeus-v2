@@ -25,7 +25,7 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
         hSpeed: 250,
         jumpPower: 500,
         maxLives: 3,
-		deadDebounce: 1_500,
+		deadDebounce: 2_500,
     } as const;
 
     dead = false;
@@ -121,8 +121,10 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
             return;
         }
 
-        if (!this.scene.physics.world.bounds.contains(this.x, this.y)) {
+        const { width, height } = SceneHelper.GetScreenSize(this.scene);
+        if (this.x < -150 || this.x > width + 150 || this.y > height + 150) {
             this.tryRespawn();
+            return;
         }
 
         if (this.exploding) {
@@ -193,8 +195,24 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
         //         this.tintFill = false;
         //     }
         // });
+
+        const blinkingDelay = 100;
+        const timer = this.scene.time.addEvent({
+            delay: blinkingDelay,
+            repeat: this.parameters.deadDebounce / blinkingDelay,
+            callback: () => {
+                if (timer.getRepeatCount() % 2 === 1) {
+                    this.setTintFill(0xffffff);
+                } else {
+                    this.clearTint();
+                }
+            },
+        });
         
-        this.scene.time.delayedCall(this.parameters.deadDebounce, () => this.canTakeHit = true);
+        this.scene.time.delayedCall(this.parameters.deadDebounce, () => {
+            this.canTakeHit = true;
+            this.clearTint();
+        });
     }
 
     die(): void {

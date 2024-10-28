@@ -30,7 +30,7 @@ export class GameOver extends Scene
         this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).on("up", () => {
             if (this.canContinue) {
                 camera.fade(1_000, 0, 0, 0, undefined);
-                this.time.delayedCall(1_000, () => this.scene.start('GameOver'));
+                this.time.delayedCall(1_000, () => this.scene.start('MainMenu'));
             }
         });
     }
