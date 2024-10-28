@@ -155,7 +155,7 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
         }
 
         // Jumping
-        if (up.isDown && this.body.touching.down) {
+        if (up.isDown && this.body.blocked.down) {
             this.jumpSound.play();
             this.setVelocityY(-this.parameters.jumpPower);
         }

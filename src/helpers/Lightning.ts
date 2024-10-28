@@ -193,7 +193,7 @@ export class Lightning {
             const size = index === points.length - 1 ? 50 : 5;
             return new Phaser.GameObjects.Ellipse(this.scene, p.x, p.y, size, size, 0x00ffff);
         });
-        this.collisionGroup.addMultiple(circles, true);
+        this.collisionGroup.addMultiple(circles, false);
     }
 
     private createLightningBolts(from: Pos, to: Pos, options: Required<LightningBoltOptions>): Segment[] {
