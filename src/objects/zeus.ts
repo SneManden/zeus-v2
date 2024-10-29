@@ -1,4 +1,4 @@
-import { Lightning } from "../helpers/Lightning";
+import { Lightning, defaultShadowOptions } from "../helpers/Lightning";
 import { SceneHelper } from "../helpers/SceneHelper";
 import { Explodable } from "../mixins/Explodable";
 import { Preloader } from "../scenes/Preloader";
@@ -48,6 +48,8 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 	preparingStrike = false;
 	lightningStriking = false;
 
+	berserkMode = false;
+
 	constructor({ scene, x, y, player }: ZeusConfig) {
         super(scene, x, y, Preloader.images.zeus, 0);
 
@@ -75,9 +77,17 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 	preUpdate(time: number, delta: number) {
         super.preUpdate(time, delta);
 
+		this.setVelocityX(0);
+		this.crosshair.setAlpha(0);
+		this.crosshair.setVelocity(0, 0);
+
         if (this.exploding) {
             return;
         }
+
+		if (this.berserkMode) {
+			return;
+		}
 
         if (this.player && this.player.canTakeHit && !this.player.exploding) {
             this.follow(this.player);
@@ -86,9 +96,6 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		if (this.player && this.player.canTakeHit && !this.player.exploding) {
 			this.crosshair.setAlpha(0.5);
 			this.aim(this.player);
-		} else {
-			this.crosshair.setAlpha(0);
-			this.crosshair.setVelocity(0, 0);
 		}
 	}
 
@@ -117,6 +124,10 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
             this.shake.pause();
 			this.canTakeHit = true;
 			canTakeDamageAgain();
+
+			if (this.health <= this.parameters.maxHealth*0.25) {
+				this.berserk();
+			}
 		});
 	}
 
@@ -162,12 +173,85 @@ export class Zeus extends Explodable(Phaser.Physics.Arcade.Sprite) {
 		this.lightning.addLightning(this, this.crosshair, { setCollisionGroup: true }, onStrike, onComplete);
 	}
 
+	berserk(): void {
+		if (this.berserkMode) {
+			return;
+		}
+		
+		this.canFire = false;
+		this.berserkMode = true;
+		this.body.setCollideWorldBounds(false);
+		
+		const { width, height } = SceneHelper.GetScreenSize(this.scene);
+		const roundTrips = 3;
+		const thunderFreq = { min: 500, max: 1500 };
+
+		const startThunder = (delay: number) => {
+			this.scene.time.delayedCall(delay, () => {
+
+				const target = { x: this.x, y: height };
+				this.lightning.addLightning(this, target, {
+					setCollisionGroup: true,
+					rendering: {
+						findDestinationTime: 250,
+						strikeTime: 350,
+					},
+					shadow: { enabled: false },
+				});
+				
+				if (this.berserkMode) {
+					startThunder(Phaser.Math.Between(thunderFreq.min, thunderFreq.max));
+				}
+			});
+		};
+
+		this.scene.tweens.chain({
+			targets: this,
+			tweens: [
+				{
+					// Night time
+					targets: null,
+					key: { from: 0, to: defaultShadowOptions.shadowAlpha },
+					duration: 1000,
+					onUpdate: (tween) => this.lightning.shadow.setAlpha(tween.getValue()),
+				},
+				{
+					// Pulse: get energized for thunder
+					scaleX: { from: 0.9, to: 1.1 },
+					scaleY: { from: 0.9, to: 1.1 },
+					duration: 250,
+					yoyo: true,
+					repeat: 5,
+				},
+				{
+					// Start moving to left endpoint
+					x: 32,
+					duration: Math.abs(this.x - 32)/(width-64)*2_000,
+					onStart: () => startThunder(Phaser.Math.Between(thunderFreq.min, thunderFreq.max)),
+				},
+				{
+					// Move between endpoints
+					x: { from: 32, to: width - 32 },
+					yoyo: true,
+					repeat: roundTrips,
+					duration: 2_000,
+				},
+			],
+			onComplete: () => {
+				// Exit berserk mode
+				this.canFire = true;
+				this.berserkMode = false;
+				this.body.setCollideWorldBounds(true);
+				this.lightning.shadow.setAlpha(0);
+			},
+		});
+	}
+
 	follow(target: Phaser.Physics.Arcade.Sprite) {
 		let horizontalDistance = target.x - this.x;
 		let precision = 10;
 
 		if (this.preparingStrike || this.lightningStriking) {
-			this.setVelocityX(0);
 			return;
 		}
 

@@ -56,7 +56,7 @@ export class Player extends Explodable(Phaser.Physics.Arcade.Sprite) {
             repeat: -1,
         });
         this.anims.create({
-            key: Animations.left, 
+            key: Animations.left,
             frames: this.anims.generateFrameNumbers(Preloader.images.player, { frames: [4, 5, 6, 7] }), 
             frameRate: 10,
             repeat: -1,

@@ -43,7 +43,9 @@ export class Game extends Scene {
         this.time.addEvent({
             delay: 4_000,
             callback: () => {
-                bulls.spawnBull();
+                if (!this.zeus.berserkMode) {
+                    bulls.spawnBull();
+                }
             },
             loop: true,
         });
