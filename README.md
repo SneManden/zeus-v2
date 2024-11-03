@@ -13,6 +13,7 @@ Created using the [Phaser esbuild TypeScript Template](https://github.com/phaser
 1. Add bull running dust,
 1. Bull juggle hit combo?
 1. Other obstacles / enemies to counter?
+1. Add a STORY! Why is Zeus mad? And why is he attacking the player? Why are bulls running everywhere?
 
 ## Known bugs
 
