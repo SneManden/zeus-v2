@@ -6,6 +6,7 @@ Created using the [Phaser esbuild TypeScript Template](https://github.com/phaser
 
 ## TODO
 
+1. Fix player sprite (frame 0)
 1. Fix draft Game Won screen,
 1. Balance game play difficulty and play time
 1. Fix/polish healthbar + player lives,
